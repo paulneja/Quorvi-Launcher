@@ -1,0 +1,13 @@
+.gradle/
+build/
+/local.properties
+/keystore.properties
+*.jks
+*.keystore
+.idea/
+*.iml
+.kotlin/
+captures/
+.externalNativeBuild/
+.cxx/
+/remote-worker/remote-worker
