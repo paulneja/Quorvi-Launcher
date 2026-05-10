@@ -568,3 +568,560 @@ The contract supports semantic versioning, structured errors, JSON Schema parame
 5. Discord: only the officially allowed capabilities.
 
 The order drops none of the nine; it avoids building nine shallow clients without one useful integrated flow.
+
+# 10. Remote runtime and distributed execution
+
+## 10.1. Linux worker
+
+An independent service written in Go, run under systemd or in a container. It installs on a PC, server or VPS and doesn't need Android to stay connected to run accepted work.
+
+**Duties:** register capabilities, receive tasks, authenticate requests, run authorized tools, limit resources, emit logs/events, store artifacts for a while, offer checkpoints and reconcile state after a disconnect.
+
+**Modules:** `worker-api`, `auth`, `task-runner`, `process-supervisor`, `workspace`, `artifact-store`, `event-stream`, `health`, `upgrade`, `policy`.
+
+## 10.2. Protocol
+
+Initial preference: versioned messages over an authenticated, encrypted transport. For NATed networks, an authenticated outbound channel and VPN/WireGuard/Tailscale options; an administrative daemon is never opened to the internet by default.
+
+Minimum messages:
+
+```text
+Hello(protocolVersion, workerId, authProof, capabilities)
+SubmitRun(runId, idempotencyKey, taskSpec, policySnapshot)
+GetRunState(runId)
+StreamEvents(runId, afterSequence)
+CancelRun(runId, reason)
+ReadArtifact(artifactId, range?)
+Heartbeat(workerId, load, state, lastEventSequence)
+```
+
+**Disconnects:** the worker stores state and events; Android asks for `afterSequence` when it reconnects. A response timeout never means the work didn't run. The server deduplicates by `idempotencyKey`.
+
+## 10.3. Local/remote scheduler
+
+Picks an executor by availability, CPU/RAM, capability, permissions, data location, privacy, latency, battery, network, cost and preferences.
+
+**Defaults:**
+
+- Android UI, notifications and local devices: the user's phone.
+- Complex documents, builds, tests and heavy analysis: an authorized remote worker when connected.
+- Sensitive phone data: local unless transfer is explicitly allowed.
+- Short commands with no UI: local when the runtime is reliable; remote when that's sturdier.
+- Very long tasks: a remote worker, given Android's life-cycle limits.
+
+**Transfers:** a per-resource manifest, encrypted transport, hash, size, real byte progress, retention and cleanup. Phone folders are never synced wholesale.
+
+## 10.4. Remote device trust
+
+Pairing with a visible fingerprint check or QR code; revocable credentials, rotation, multiple devices, per-workspace isolation and per-operation permissions. A remote worker never triggers privileged Android actions without extra authorization on that phone.
+
+# 11. Android control and layered privileges
+
+## 11.1. Capability model (not a single level)
+
+The UI shows a matrix detected at runtime. Capabilities can be enabled or revoked one by one; some are independent of each other.
+
+| Capability | Mechanism | Limit / fallback |
+|---|---|---|
+| Launcher | Home intent + `ROLE_HOME` | Must work with no extra capabilities |
+| Widgets | `AppWidgetHost` | Full widget host responsibilities |
+| Notifications | `NotificationListenerService` | Opt-in special access; the original shade is untouched |
+| Media | `MediaSessionManager` | Only allowed sessions/controllers |
+| Local search | Indexes/SAF/MediaStore | Limited by granted scopes |
+| UI inspect | Accessibility service | Compatible windows only; protected content skipped |
+| Gesture dispatch | `AccessibilityService.dispatchGesture` | Can collide with the user; arbitrated |
+| Screenshot | Accessibility screenshot APIs / MediaProjection | Privacy limits and `FLAG_SECURE` |
+| Overlay | `SYSTEM_ALERT_WINDOW` | Below critical windows; OEMs may limit it |
+| Shell UID | ADB/Shizuku | UID 2000 when available; not root |
+| Root UID | Shizuku root / authorized `su` | Explicit operations and backend checks |
+| SystemUI hooks | ROM-specific root module | Experimental, reversible, not a product requirement |
+
+## 11.2. Root by scope
+
+- `ROOT_READ`: read protected state without writing.
+- `ROOT_CONTROL`: specific administrative functions.
+- `ROOT_EXEC`: privileged commands allowed by the run's policy.
+- `ROOT_MODIFY`: persistent system changes and protected settings.
+- `ROOT_EXPERIMENTAL`: hooks, modules and unsupported integrations.
+
+Every privileged operation records the backend, effective UID, command/operation, target, policy and result. Permissions expire; `su` is never assumed because a phone was rooted at some point.
+
+## 11.3. Screen intelligence
+
+`OBSERVE → REASON → ACT → VERIFY`. The accessibility tree first; screenshots and vision only when they add information. Gestures through `AccessibilityService` on a validated target, then the state is read again. Limits on repeated interactions and protection for sensitive screens.
+
+**Examples:** walk a menu, fill a screen, find a control, recognize an error, open compatible settings. Silent actions on banking, passwords or high-impact forms are avoided unless authorized for that moment.
+
+## 11.4. A busy screen
+
+There is one primary touch surface: visual control is not true parallelism with the user. `ScreenArbitration` tracks `FREE`, `REQUESTED`, `AGENT_EXCLUSIVE`, `USER_PREEMPTED`, `RELEASED`. A human touch releases control and pauses new actions until the context is confirmed again.
+
+## 11.5. SystemUI and the notification shade
+
+Control Studio is useful without modules. The native shade depends on Android SystemUI, the lock screen, Quick Settings tiles and privileges. Read-only partitions are never modified and flashing a system is never required. A future `systemui-extension` would be a separate artifact with a ROM matrix, reversible, with documented recovery.
+
+## 11.6. Android across vendors
+
+Compatibility isn't solved by brand detection first. Public APIs and capability detection come first; OEM adapters are added only for proven behavior. The proposed range is Android 10+, with priority testing on Android 13–17.
+
+**Android 15 Private Space:** the default launcher with the matching permission shows a separate container and respects locking/hiding; locked private apps aren't indexed. **Android 16:** JobScheduler/WorkManager quotas affect tasks. **Android 17:** local network access permissions when targeting API 37+; LAN scans aren't assumed to work without consent.
+
+# 12. Persistence, events and sync
+
+## 12.1. Initial data models
+
+```text
+Workspace(id, name, order, themeRef, motionProfileRef, policyRef)
+CanvasScene(id, workspaceId, schemaVersion, layoutBlob, updatedAt)
+CanvasComponent(id, sceneId, type, connectorRef?, queryRef?, bounds, z, styleRef)
+UserGesture(id, context, trigger, actionId, priority)
+Connection(id, providerType, accountRef, configRef, state, scopes, lastHealth)
+CredentialRef(id, provider, secureStoreAlias, policyScope)
+Device(id, displayName, kind, capabilities, trustState, lastSeen)
+Run(id, parentRunId?, origin, goal, state, policySnapshotRef, createdAt, updatedAt)
+Task(id, runId, parentTaskId?, dependencies, state, executorRef)
+Step(id, taskId, kind, toolRef?, state, attempt, timing, resultRef)
+Event(id, runId?, sequence, actor, type, payloadRef, timestamp)
+Process(id, ownerRunId?, sessionId?, executorRef, state, exitCode?)
+Artifact(id, runId, mime, uriRef, sha256, size, verified, exportedUriRef?)
+MemoryItem(id, scope, kind, contentRef, source, confidence, sensitivity, expiresAt?)
+PolicyGrant(id, subject, capability, resourceScope, constraints, expiresAt?)
+```
+
+Every schema change has a Room migration and tests with existing data; snapshots/backups are verifiable. No `fallbackToDestructiveMigration` on real data without consent.
+
+## 12.2. Partial event sourcing
+
+Not the whole app. Ordered events for runs, tasks and steps, with state snapshots for efficient queries. The UI can rebuild history and remote workers resume `StreamEvents` from a sequence.
+
+**Logs:** shell transcripts, binary bytes, API requests, model traces and artifacts aren't stored whole in the events table. They're kept by reference with retention/size limits, and secrets are redacted before display.
+
+## 12.3. Offline first
+
+The launcher and known task history work offline. Connectors show `lastUpdated`, a stale state and a retry action. Network operations are queued only when safe and idempotent; destructive actions are never queued blindly.
+
+# 13. Background execution and life cycle
+
+## 13.1. What can be guaranteed
+
+- Local tasks survive Activity destruction when they live in the right service/process and save their state.
+- Retries and deferrable work can be scheduled through approved Android mechanisms.
+- Remote work continues while the phone is away, as long as the worker stays up.
+
+## 13.2. What can't
+
+- Working forever after a force-stop, an unconditional reboot, power-off, no connectivity or restrictive vendor policies.
+- Starting any foreground service at will from the background: there are restrictions since API 31, FGS type permissions and per-version limits.
+- Running an interactive agent of arbitrary length on WorkManager/JobScheduler without quotas.
+
+**Design:** checkpoint-based resumption, a foreground service only for active work started legitimately, WorkManager for maintenance/retries and the remote worker for long tasks. A notification when the system requires one or when it adds control. Battery optimization is detected without promising it lifts every limit.
+
+## 13.3. Restart and recovery
+
+On start: check the database, register the UI, reconnect services, see whether processes survived, reconcile remote state and reschedule what's pending. An old `RUNNING` never implies a live process. `INTERRUPTED` is recorded where it applies, with an option to resume from a checkpoint.
+
+# 14. End-to-end journeys
+
+These scenarios are experience contracts. Each one needs end-to-end validation and alternate states for missing permissions, connection, model or backend.
+
+## 14.1. Making a document without interrupting the user
+
+**Request:** "I need a full document on photosynthesis. Research it, check the facts and put it in Downloads."
+
+**Expected:**
+
+1. Command recognizes the goal and shows an unobtrusive confirmation with the default destination and format, applying saved preferences.
+2. A `Run` starts in the background; the user keeps using Android.
+3. The planner splits research, outline, writing, generation and verification, with dependencies.
+4. The agent uses authorized web tools, keeps URLs/dates and never treats source text as instructions.
+5. Scripts run in the local or an authorized remote shell, writing to the workspace first.
+6. The document is checked: it exists, it's coherent, it opens; errors go to retry or fallback.
+7. It's exported to `Downloads` through an Android-compatible mechanism and the artifact URI is recorded.
+8. A configurable notification/indicator links to the document and the step history.
+
+**Errors:** no network, conflicting sources, no Python, low storage, a killed service, export denied. None of them produce a fake success notification.
+
+**Acceptance:** a verifiable file, no screen stealing, a complete run, observable steps and a result that repeats with a different instruction.
+
+## 14.2. GitHub Actions → diagnosis → proposed fix
+
+1. A CI widget shows a real workflow chosen by the user (not a made-up counter).
+2. A tap turns the card into the run screen; states and logs come from the real API.
+3. Contextual Command: "find out why it failed". A `Run` linked to a `GitHubRunRef` is created.
+4. Logs are fetched with the right scopes; the AI pinpoints failures and evidence and, if it needs code, opens an authorized workspace.
+5. The shell runs analysis and tests locally or remotely, with inspectable output.
+6. It delivers a diagnosis and an optional diff/patch. No push or PR without the configured permission.
+7. The UI shows the model, tools, time, cost when known and files.
+
+**Variant:** the workflow finished between opening and asking; the state refreshes without losing context.
+
+## 14.3. Driving an Android screen
+
+**Request:** "Open Settings and find the X option."
+
+- First look for an intent/deep link/stable API; if that's not enough, ask to use the UI through `AccessibilityService`.
+- Acquire a screen session; show an indicator and a way to interrupt.
+- Inspect the hierarchy; prefer semantic actions; screenshot/vision as a fallback.
+- Check the result after acting and record what's visible/redacted.
+- If the user touches the phone, suspend the agent's gestures and reassess.
+
+**Without permissions:** explain that the action needs Accessibility and offer to open it.
+
+## 14.4. Home Assistant and quick control
+
+A widget with favorite entities, live states and scenes. A tap changes an authorized device and confirms the state when the event arrives. Off the network it clearly shows a stale value and never fakes the action. The agent can also run a scene through a typed tool.
+
+## 14.5. Manual terminal and agent terminal
+
+Operations → Terminals shows Termux, Quorvi runtime and remote sessions. An agent session shows cwd, backend, process, owning run and commands. The user can attach in observe mode; taking stdin/control requires the process state to allow it and arbitration to avoid concurrent writes.
+
+## 14.6. Losing privileges or a connection
+
+If Shizuku is revoked during a run, the broker returns `UNAUTHORIZED` or `CAPABILITY_LOST`, pauses that step, keeps the logs and looks for a non-privileged alternative when policy allows. It never keeps trying root or reports completion. If GitHub drops, the component shows stale and keeps the last known local state.
+
+# 15. Action capsules, routines and automations
+
+**Action capsules** are reusable workflows the user builds by hand or with the LLM's help. They aren't just saved prompts: they contain typed actions, conditions and verifiers.
+
+Examples: `Start work`, `Check my pipelines`, `Prepare the SSH environment`, `Make a report`, `Turn off selected devices`.
+
+**Suggested schema:**
+
+```yaml
+id: start-work
+schemaVersion: 1
+trigger:
+  type: manual
+policyProfile: automatic-standard
+steps:
+  - id: workspace
+    tool: quorvi.workspace.activate
+    with: { workspaceId: work }
+  - id: github
+    tool: github.queryRecentRuns
+    with: { repositoryRef: preferred }
+  - id: notify
+    tool: quorvi.ui.showCard
+    needs: [workspace, github]
+    with: { cardType: ci-summary }
+```
+
+The format is illustrative and validated against a versioned JSON Schema. The capsule compiler resolves dependencies, permissions and conditions before running, with preview, dry run, cloning, import/export and effect simulation.
+
+A validated capsule can run deterministically without an LLM on every execution.
+
+# 16. Connections, notifications and indicators
+
+## 16.1. Connection dashboard
+
+A global view: accounts, hosts, devices, configurable alerts, latency, last sync, logs and installed widgets. Favorite entities for quick access. Every card can be hidden, resized and pinned to Canvas, Operations or Control Studio.
+
+## 16.2. Live activity / agent indicator
+
+Configurable modes:
+
+- `OFF`: nothing persistent, only history.
+- `SUBTLE`: an indicator on Canvas plus done/error notifications.
+- `COMPACT`: an expandable floating component when an overlay is possible.
+- `OPERATIONS_ONLY`: activity only in the runs center.
+- `VERBOSE`: state and recent steps.
+
+No misleading imitations of the status bar where the system doesn't allow it. An overlay never blocks critical buttons or content.
+
+## 16.3. Notifications
+
+Authorized notifications grouped by app, importance, type and configurable rules. Filters, an optional summary of authorized content and a jump to the original app, keeping the metadata needed to interact per the APIs. Sensitive data is redacted by default in logs and in anything sent to remote models.
+
+**Not promised:** a universal replacement for lock screen/SystemUI notifications or reading notifications Android or the user didn't grant.
+
+# 17. Security, credentials and audit
+
+## 17.1. Trust boundaries
+
+1. **UI:** presents data and controls settings; holds no plaintext credentials beyond the authorized point of use.
+2. **Agent engine:** never a security authority; it can be wrong or influenced by external data.
+3. **Tool broker:** where every action is authorized, validated, audited and limited.
+4. **Shell:** any arbitrary shell can run destructive commands within its UID; text filters are not isolation.
+5. **Connectors:** per-provider, per-scope credentials; tokens are never shared wholesale.
+6. **Workers:** authorized by pairing with their own policies; services exposed only over secure transport.
+7. **External data:** web pages, issues, READMEs, messages and logs are content, never system instructions.
+
+## 17.2. Secret vault
+
+Android Keystore protects local keys; secrets are encrypted at rest with per-connector access control. `CredentialRef` exposes an opaque identifier. Remote workers hold their secrets with equivalent security or get a delegated token with a reduced scope and an expiry.
+
+Credentials are never exported in backups without encryption and explicit confirmation. Command/request/header logs are redacted by schema plus heuristic patterns, with a warning that some leaks may remain.
+
+## 17.3. Audit
+
+Every tool call records `runId`, `stepId`, `toolName/version`, `actor`, `executor`, `capabilitiesChecked`, `policyDecision`, `inputDigest`, `resultType`, `duration`, `timestamp`, `artifactRefs`, `errorCode`. Full arguments only when the privacy policy allows. Logs rotate, are retained and can be exported.
+
+## 17.4. Root and experimental changes
+
+`dryRun`, configuration backups and specific rollback. Reverting physical changes or deletions is not promised. Modules that alter SystemUI are versioned per ROM, never hook silently and can be disabled outside the app if the UI won't start.
+
+# 18. Non-functional requirements and internal SLOs
+
+These are design targets to tune after measuring, not performance claims for every phone.
+
+| Attribute | Target | Evidence |
+|---|---|---|
+| Offline launcher | Opens apps, navigates Canvas and settings without internet | Airplane mode test |
+| Non-blocking UI | No heavy backend blocks a UI frame | Perfetto + load tests |
+| Animation | Stable motion profiles without excessive jank | Macrobenchmark per profile |
+| Fault isolation | A connector/agent crash doesn't break Home | Fault injection |
+| Battery | Throttled polling, events where available, no tight loops | 24 h test with agents off/on |
+| Memory | Per-process budget and log backpressure | Profiler + stress tests |
+| Persistence | Runs and preferences survive recreation/process death | Kill/restart tests |
+| Backups | Export/restore scene, preferences and metadata, no secrets by default | Round-trip test |
+| Security | No credentials in logs, no unauthorized execution | Negative suite + review |
+| Compatibility | Base level works on reference ROMs | Device matrix |
+| Accessibility | Correct gestures, font and semantics | Manual TalkBack tests |
+| Observability | Every step shows a cause and verifiable output | E2E with failures |
+
+**Metrics:** cold/warm start, time to first frame, time to app launch, input latency p50/p95/p99, missed frames, ANR rate, crashes per 100 sessions, battery use, PSS memory, reconnects, share of finished jobs, retry rate and tool call response time.
+
+# 19. QA: automated, manual and compatibility tests
+
+## 19.1. Tests per component
+
+- **Unit:** state machines, worker selection, policy evaluation, scopes, JSON schemas, connection normalization, the Command parser, layout constraints.
+- **Instrumented Android:** AppWidgetHost, installed/removed packages, the HOME role, wallpapers, orientation, menus, permissions, profile changes.
+- **Runtime integration:** stdin/stdout/stderr, PTY resize, signals, long processes, huge output, Unicode, cancellation, backend loss.
+- **Agents:** deterministic fake models, tool calls, DAG, timeouts, deduplication, resumption, budgets, the verifier, simulated prompt injection.
+- **Connectors:** test servers/mocks with pagination, rate limits, expired tokens, 401/403/429/500, duplicate and out-of-order events.
+- **Remote:** disconnect/reconnect, replay from a sequence, the same idempotencyKey, retries, interrupted transfers, clock skew.
+- **Security:** denied scopes, UID changes, revoked root, credentials in stdout, SSRF, path traversal, malicious tool schemas.
+- **UX/perf:** Macrobenchmark, snapshots/semantics, scrolling 1000 apps, dozens of cards, live streams, keyboard and accessibility.
+
+## 19.2. Minimum device matrix
+
+- The Ulefone reference phone, with Android and firmware versions recorded.
+- A Pixel/AOSP emulator on a modern Android.
+- At least one other brand/OEM skin (Samsung/Xiaomi/Motorola/other) when hardware is available.
+- Android 10/11 to check the minimum range if that compatibility is kept.
+- Android 15+ with Private Space and Android 16/17 for recent restrictions, as available.
+- ARM64 first; other ABIs depending on the native terminal and demand.
+
+**Universal compatibility is never claimed** after testing an emulator and one phone.
+
+## 19.3. Reproducible benchmarks
+
+Versioned scenarios: `cold_start`, `home_drawer_scroll`, `expand_widget`, `open_operations_100_runs`, `live_terminal_10k_lines`, `agent_background_2runs`, `visual_control_preempt`, `restore_canvas_50components`. Measured before and after every motion engine or data architecture change.
+
+## 19.4. Release exit criteria
+
+A reproducible build, relevant automated tests passing, a smoke test on a device, a checked migration, no blocking launcher crashes, working recovery paths, no exposed secrets and experimental features labeled. A release never ships on a flashy animation if the home screen isn't a good daily launcher.
+
+# 20. Repository and technology
+
+## 20.1. Reference stack
+
+| Area | Choice | Note |
+|---|---|---|
+| Android | Kotlin + Gradle Kotlin DSL | Versions checked when the project is created |
+| UI | Jetpack Compose + View interop | AppWidgetHost and the terminal may need Views |
+| Data | Room/SQLite + DataStore | Tested migrations |
+| Async | Coroutines + Flow | No work on the main thread |
+| IPC | AIDL/Binder | Versioned external services |
+| Networking | OkHttp/WebSockets | Auth and backpressure |
+| Terminal | Compatible libraries + PTY | A visual emulator is not a Unix runtime |
+| Existing runtime | Termux RUN_COMMAND | Measured compatibility |
+| Remote | Go + a versioned protocol | systemd/container |
+| Security | Android Keystore + policy broker | Strict scopes |
+| Tests | JUnit, instrumented, Macrobenchmark, Perfetto | CI + real hardware |
+| Protocols | JSON Schema | IDs and versioning |
+
+## 20.2. Target repository layout
+
+```text
+quorvi/
+  README.md
+  docs/
+    SPEC.md
+    DECISIONS.md
+    KNOWN_LIMITATIONS.md
+    PLAN.md
+  app/
+  runtime/
+  benchmark/
+  remote-worker/
+  protocol/
+```
+
+Start with a few coherent modules and extract new ones only when there's a proven technical need.
+
+# 21. Roadmap by verifiable deliverables
+
+## P0. Technical discovery and risk prototypes
+
+- A skeleton app working as HOME on a test device.
+- An AppWidgetHost prototype with a third-party widget.
+- A measurable expand/collapse transition prototype at 60/120 Hz.
+- Separate spikes: Termux RUN_COMMAND; a native runtime; FGS/worker continuity; Shizuku; notifications; overlay.
+- Decision records with real constraints, test results and fallbacks.
+
+**Exit:** a feasibility matrix (`SUPPORTED`, `PARTIAL`, `UNSUPPORTED`, `OEM-SPECIFIC`) with per-device evidence.
+
+## P1. A reliable daily launcher
+
+Home, Canvas, apps, folders, dock, drawer, shortcuts, widgets, basic themes, gestures, settings and a safe reset. Install, restart, orientation, launcher switching and crash recovery tests.
+
+**Acceptance:** replaces the stock launcher for basic daily use with no AI and no internet; a failing component recovers.
+
+## P2. Premium visuals and Studio
+
+Design system, motion engine, card ↔ detail continuity, animation profiles, a first visual editor, undo/redo, exportable layouts, accessibility/reduce motion, benchmarks.
+
+**Acceptance:** critical journeys measured, working customization, no structural jank from animation.
+
+## P3. Terminal + first end-to-end agent
+
+Terminal, session manager, Command, a persistent agent orchestrator, a minimal model router, shell/fs/web tools, a verifier, export to Downloads, Operations with logs.
+
+**Acceptance:** the photosynthesis scenario (or equivalent) with a real, verifiable artifact, without taking over the screen, recovering after Activity recreation.
+
+## P4. Priority connections + deep Operations
+
+GitHub and SSH, a visible DAG, log streaming, command inspection, retries and history; then Docker/HTTP. Actions visible with real data and authorized actions.
+
+**Acceptance:** diagnosing a failed GitHub run produces a report/patch and records tools, tests and sources.
+
+## P5. Autonomy, memory and remote workers
+
+Memory engine, manual/auto/bypass policies, audit, the Go daemon, pairing, event sync, executor selection and artifacts. Home Assistant/GitLab.
+
+**Acceptance:** a long task finishes remotely while Android is offline and reconciles on return.
+
+## P6. Android control and Control Studio
+
+Authorized notifications, media, available system controls, overlay, AccessibilityService, screen arbitration, Shizuku and granular root. Drive/remote Android/Discord with allowed APIs.
+
+**Acceptance:** a controlled visual session the user can interrupt; revoking permissions degrades clearly without breaking Home.
+
+## P7. Advanced customization and experiments
+
+A validated declarative editor, rich HTTP widgets, action capsules, advanced telemetry panels, motion improvements, OEM optimizations. A `SystemUI extension` only as a specific experimental project with rollback.
+
+**Acceptance:** extreme configurations import and restore without losing launcher recovery.
+
+# 22. Risks, dependencies and mitigations
+
+| Risk | Impact | Mitigation / decision |
+|---|---|---|
+| Too much complexity before a usable home | High | Vertical slices; P1 before expanding |
+| OEM/Android limits gestures/Recents | High | No universal Quickstep promise; alternative gestures |
+| Embedded Termux shell fails on prefixes/SELinux/API | High | Spike, own runtime, remote backend |
+| Android kills background work | High | Checkpoints, remote worker, clear expectations |
+| An agent follows a malicious instruction from the web | Critical | Broker, scopes, untrusted data, audit, sandbox |
+| Root compromises the phone | Critical | Optional, granular, separate UI, backups, no firmware |
+| Remote Docker equals host root | Critical | SSH/TLS, specific permissions, no unprotected sockets |
+| Blur/transitions hurt FPS | High | Profiles, degradation, per-device measurements |
+| Nine connectors polling too much | Medium/high | Subscriptions, caching and staggered refresh |
+| Tokens and documents exposed to the LLM | Critical | Vault, per-resource policy, minimal context, redaction |
+| Inconsistent task state after reconnect | High | Event sequence, idempotency, snapshots, reconcile |
+| License issues in reused code | Medium/high | Review licenses/copyright before integrating |
+| Disallowed Discord API use | High | Official OAuth2/bots, limited capabilities |
+| Android 17+ changes | Medium | Versioned target, LAN/background tests, capability checks |
+| Themes/plugins break the UI | High | Validated DSL, safe layout, undo, backup, fallback |
+
+# 23. Prioritized backlog
+
+## MUST: product base
+
+- A high-quality home, Canvas, drawer, apps, folders, widgets and gestures.
+- Theme/motion engine and a first Studio with persistence.
+- An instant universal Command for apps and local actions.
+- Persistent Operations with runs, steps, logs, errors and artifacts.
+- A working terminal and a swappable shell backend contract.
+- An agent with typed tools, a planner, basic memory and verification.
+- File export to Downloads with real status.
+- Capability broker, autonomy modes and a kill switch.
+- Deeply integrated GitHub + SSH/Linux.
+- Life-cycle and UI performance tests.
+
+## SHOULD: advanced ecosystem
+
+- The Go worker and remote continuity.
+- Docker, HTTP, Home Assistant and GitLab.
+- Control Studio with real notifications/media/controls.
+- Accessibility and screen arbitration.
+- An advanced component/scene editor.
+- Agent profiles, budgets and rich traces.
+
+## COULD: advanced experiments
+
+- Drive, Discord and other Androids with the full experience the APIs allow.
+- An advanced local semantic engine.
+- AI-composed cards.
+- Complex visual capsules and a DAG editor.
+- Optional, ROM-specific SystemUI hooks.
+- Deeper integrations with external tools and voice.
+
+# 24. Open technical questions
+
+1. `minSdk`, `targetSdk`, ABI and exact Gradle/Compose/Kotlin versions, after checking tools and compatibility.
+2. Exact gesture layout per ROM and the home recovery method.
+3. Project licensing and redistribution duties if GPL components are included.
+4. The definitive pairing/remote method after the threat model and NAT tests.
+5. The initial LLM provider/model and billing; no keys baked into the APK.
+6. Real ability to drive toggles and Quick Settings per device/version.
+7. How much declarative customization is safe for third-party HTTP components.
+
+These don't block P0/P1; they're resolved through spikes, decision records and fallbacks.
+
+# 25. Glossary
+
+- **Canvas:** the editable home screen.
+- **Command:** the universal search and action bar.
+- **Operations:** the global view of runs, processes, logs and results.
+- **Control Studio:** the panel for controls, notifications, media and agents.
+- **Studio:** the look and behavior editor.
+- **Connection Hub:** the external integrations layer.
+- **Nexo:** the AI assistant built into Quorvi.
+- **Run:** one full execution of a goal.
+- **Task:** a subtask, possibly depending on others.
+- **Step:** a verifiable operation inside a task.
+- **Tool call:** a typed call to an external capability.
+- **Artifact:** a file, patch or materialized, verifiable result.
+- **Capsule:** a typed, reusable, prevalidated automation.
+- **Capability broker:** checks tool availability and effective permissions.
+- **Policy engine:** decides to allow, deny or ask for approval.
+- **Runtime:** the Unix environment and session manager.
+- **Remote worker:** a Linux executor decoupled from Android.
+- **Bypass:** the maximum configured autonomy mode, never a promise to bypass OS rules.
+
+# 26. Technical references
+
+These URLs are implementation references, not dependencies or endorsements of a version. Check the current docs when starting each module.
+
+- Android RoleManager / `ROLE_HOME`: https://developer.android.com/reference/android/app/role/RoleManager
+- Android AppWidgetHost: https://developer.android.com/reference/android/appwidget/AppWidgetHost
+- Android LauncherApps: https://developer.android.com/reference/android/content/pm/LauncherApps
+- Android AccessibilityService / `dispatchGesture`: https://developer.android.com/reference/android/accessibilityservice/AccessibilityService
+- Android WindowManager.LayoutParams / overlays: https://developer.android.com/reference/android/view/WindowManager.LayoutParams
+- Android foreground service background restrictions: https://developer.android.com/develop/background-work/services/fgs/restrictions-bg-start
+- Android 16 behavior changes (JobScheduler quotas): https://developer.android.com/about/versions/16/behavior-changes-all
+- Android 15 Private Space requirements: https://developer.android.com/about/versions/15/behavior-changes-all
+- Android 17 target behavior changes (LAN): https://developer.android.com/about/versions/17/behavior-changes-17
+- Android Baseline Profiles: https://developer.android.com/topic/performance/baselineprofiles/create-baselineprofile
+- Termux RUN_COMMAND: https://github.com/termux/termux-app/wiki/RUN_COMMAND-Intent
+- Termux libraries: https://github.com/termux/termux-app/wiki/Termux-Libraries
+- Termux file system layout: https://github.com/termux/termux-packages/wiki/Termux-file-system-layout
+- Termux execution environment: https://github.com/termux/termux-packages/wiki/Termux-execution-environment
+- Termux LICENSE: https://github.com/termux/termux-app/blob/master/LICENSE.md
+- GitHub REST Actions: https://docs.github.com/en/rest/actions
+- GitLab Pipelines API: https://docs.gitlab.com/api/pipelines/
+- Docker API security: https://docs.docker.com/engine/security/protect-access/
+- Home Assistant REST API: https://developers.home-assistant.io/docs/api/rest/
+- Home Assistant WebSocket API: https://developers.home-assistant.io/docs/api/websocket/
+- Google Drive API scopes: https://developers.google.com/workspace/drive/api/guides/api-specific-auth
+- Discord API/OAuth2: https://discord.com/developers/docs/topics/oauth2
+
+---
+
+# Product definition
+
+**Quorvi is a premium Android launcher that works as a home screen, an operations console and a platform for autonomous agents.** You can see and control apps, workflows, devices, connections, processes and AI work from one coherent, highly customizable experience. Its assistant, Nexo, has memory, tools, a real terminal and local/remote executors; it works without interrupting needlessly and records what it does. Deep Android integrations unlock through capabilities and permissions, without making root or firmware changes a requirement.
+
+Quorvi succeeds when it does three things at once: (1) it's a launcher worth using every day, (2) it solves real work end to end with verification, and (3) it lets you watch and step into that work as clearly as a good developer tool.
