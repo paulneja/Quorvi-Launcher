@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Quorvi</string>
+    <string name="launch_failed">Could not open %1$s</string>
     <string name="make_default">Set Quorvi as your home screen</string>
     <string name="menu_remove">Remove</string>
     <string name="menu_uninstall">Uninstall</string>
@@ -21,6 +22,9 @@
     <string name="search_hint">Search</string>
     <string name="drop_remove">Remove</string>
     <string name="drop_uninstall">Uninstall</string>
+    <string name="no_space">No free space for that</string>
+    <string name="cannot_place">That doesn\'t fit there</string>
+    <string name="wallpaper_failed">Couldn\'t set that wallpaper</string>
     <string name="edit_done">Done</string>
     <string name="edit_remove_page">Delete page</string>
     <string name="edit_remove_page_confirm">Sure? Delete all</string>
