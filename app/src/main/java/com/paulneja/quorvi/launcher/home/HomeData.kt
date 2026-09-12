@@ -1,0 +1,130 @@
+package com.paulneja.quorvi.launcher.home
+
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.Insert
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.RoomDatabase
+import androidx.room.Update
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlinx.coroutines.flow.Flow
+
+const val GLASS_KIND = "glass"
+
+object ItemType {
+    const val APP = 0
+    const val WIDGET = 1
+    const val FOLDER = 2
+    const val SHORTCUT = 3
+    const val CLOCK = 4
+    const val NEXO_CARD = 5
+}
+
+object Container {
+    const val PAGE = 0
+    const val DOCK = 1
+    const val FOLDER = 2
+}
+
+@Entity(
+    tableName = "home_items",
+    indices = [Index(value = ["container", "page"]), Index(value = ["parentId"])],
+)
+data class HomeItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val type: Int,
+    val container: Int,
+    val page: Int = 0,
+    val cellX: Int = 0,
+    val cellY: Int = 0,
+    val spanX: Int = 1,
+    val spanY: Int = 1,
+    val appKey: String? = null,
+    val widgetId: Int? = null,
+    val shortcutId: String? = null,
+    val parentId: Long? = null,
+    val title: String? = null,
+    val locked: Boolean = false,
+    val rank: Int = 0,
+    val config: String? = null,
+) {
+    val rect: CellRect get() = CellRect(cellX, cellY, spanX, spanY)
+
+    val backdrop: Boolean get() = type == ItemType.NEXO_CARD && title == GLASS_KIND
+}
+
+@Dao
+interface HomeDao {
+    @Query("SELECT * FROM home_items ORDER BY container, page, cellY, cellX, rank")
+    fun observe(): Flow<List<HomeItemEntity>>
+
+    @Query("SELECT * FROM home_items")
+    suspend fun all(): List<HomeItemEntity>
+
+    @Query("SELECT * FROM home_items WHERE id = :id")
+    suspend fun get(id: Long): HomeItemEntity?
+
+    @Insert
+    suspend fun insert(item: HomeItemEntity): Long
+
+    @Update
+    suspend fun update(item: HomeItemEntity)
+
+    @Update
+    suspend fun updateAll(items: List<HomeItemEntity>)
+
+    @Query("DELETE FROM home_items WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("DELETE FROM home_items WHERE parentId = :parentId")
+    suspend fun deleteChildren(parentId: Long)
+
+    @Query("SELECT * FROM home_items WHERE appKey LIKE :packageName || '/%' AND appKey LIKE '%#' || :userSerial")
+    suspend fun byPackage(packageName: String, userSerial: Long): List<HomeItemEntity>
+
+    @Query("SELECT * FROM home_items WHERE type = 3 AND appKey LIKE :packageName || '/%'")
+    suspend fun shortcutsOf(packageName: String): List<HomeItemEntity>
+
+    @Query("DELETE FROM home_items")
+    suspend fun clear()
+
+    @Query("SELECT * FROM home_pages ORDER BY page")
+    fun observePages(): Flow<List<HomePageEntity>>
+
+    @Query("SELECT * FROM home_pages ORDER BY page")
+    suspend fun pages(): List<HomePageEntity>
+
+    @androidx.room.Upsert
+    suspend fun upsertPages(pages: List<HomePageEntity>)
+
+    @Query("DELETE FROM home_pages")
+    suspend fun clearPages()
+
+    @Query("UPDATE home_items SET config = :config WHERE id = :id")
+    suspend fun setConfig(id: Long, config: String?)
+}
+
+@Database(
+    entities = [
+        HomeItemEntity::class,
+    ],
+    version = 1,
+    exportSchema = true,
+)
+abstract class QuorviDatabase : RoomDatabase() {
+    abstract fun home(): HomeDao
+
+    companion object {
+        val MIGRATIONS = emptyArray<Migration>()
+
+        private const val CREATE_HOME_ITEMS_V2 = "CREATE TABLE IF NOT EXISTS `home_items` (" +
+            "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` INTEGER NOT NULL, `container` INTEGER NOT NULL, " +
+            "`page` INTEGER NOT NULL, `cellX` INTEGER NOT NULL, `cellY` INTEGER NOT NULL, `spanX` INTEGER NOT NULL, " +
+            "`spanY` INTEGER NOT NULL, `appKey` TEXT, `widgetId` INTEGER, `shortcutId` TEXT, `parentId` INTEGER, " +
+            "`title` TEXT, `locked` INTEGER NOT NULL, `rank` INTEGER NOT NULL)"
+    }
+}
