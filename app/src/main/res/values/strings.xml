@@ -3,6 +3,8 @@
     <string name="app_name" translatable="false">Quorvi</string>
     <string name="launch_failed">Could not open %1$s</string>
     <string name="make_default">Set Quorvi as your home screen</string>
+    <string name="folder_default">Folder</string>
+    <string name="widget_missing">Widget unavailable</string>
     <string name="menu_remove">Remove</string>
     <string name="menu_uninstall">Uninstall</string>
     <string name="menu_info">App info</string>
