@@ -112,14 +112,34 @@ interface HomeDao {
     entities = [
         HomeItemEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
 
     companion object {
-        val MIGRATIONS = emptyArray<Migration>()
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(CREATE_HOME_ITEMS_V2.replace("home_items", "home_items_v2"))
+                db.execSQL(
+                    """
+                    INSERT INTO home_items_v2 (id, type, container, page, cellX, cellY, spanX, spanY, appKey, widgetId, shortcutId, parentId, title, locked, rank)
+                    SELECT id, ${ItemType.APP}, container, page,
+                        CASE WHEN container = ${Container.DOCK} THEN cell ELSE cell % 4 END,
+                        CASE WHEN container = ${Container.DOCK} THEN 0 ELSE cell / 4 END,
+                        1, 1, appKey, NULL, NULL, NULL, NULL, 0, 0
+                    FROM home_items
+                    """.trimIndent(),
+                )
+                db.execSQL("DROP TABLE home_items")
+                db.execSQL("ALTER TABLE home_items_v2 RENAME TO home_items")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_home_items_container_page` ON `home_items` (`container`, `page`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_home_items_parentId` ON `home_items` (`parentId`)")
+            }
+        }
+
+        val MIGRATIONS = arrayOf(MIGRATION_1_2)
 
         private const val CREATE_HOME_ITEMS_V2 = "CREATE TABLE IF NOT EXISTS `home_items` (" +
             "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` INTEGER NOT NULL, `container` INTEGER NOT NULL, " +
