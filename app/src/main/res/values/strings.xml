@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Quorvi</string>
+    <string name="search_apps">Search apps</string>
+    <string name="no_results">No apps match “%1$s”</string>
     <string name="launch_failed">Could not open %1$s</string>
     <string name="make_default">Set Quorvi as your home screen</string>
     <string name="folder_default">Folder</string>
@@ -27,6 +29,15 @@
     <string name="no_space">No free space for that</string>
     <string name="cannot_place">That doesn\'t fit there</string>
     <string name="wallpaper_failed">Couldn\'t set that wallpaper</string>
+    <string name="tab_personal">Personal</string>
+    <string name="tab_work">Work</string>
+    <string name="private_space">Private space</string>
+    <string name="private_locked">Locked</string>
+    <string name="private_unlock">Unlock</string>
+    <string name="private_lock">Lock</string>
+    <string name="work_pause">Pause work apps</string>
+    <string name="work_resume">Turn on work apps</string>
+    <string name="work_paused_hint">Work apps are paused</string>
     <string name="edit_done">Done</string>
     <string name="edit_remove_page">Delete page</string>
     <string name="edit_remove_page_confirm">Sure? Delete all</string>
@@ -53,6 +64,8 @@
     <string name="blk_media">Music</string>
     <string name="blk_photos">Photos</string>
     <string name="blk_contacts">Favorites</string>
+    <string name="drawer_most_used">Most used</string>
+    <string name="drawer_unsuggest_hint">Tap "Don\'t suggest" to remove it from Most used. You can bring it back in Settings → Apps.</string>
     <string name="glass_hint_title">Turn on liquid glass</string>
     <string name="menu_edit_home">Edit home</string>
     <string name="glass_opt_pick">Pick wallpaper</string>
