@@ -28,6 +28,9 @@
     <string name="drop_uninstall">Uninstall</string>
     <string name="no_space">No free space for that</string>
     <string name="cannot_place">That doesn\'t fit there</string>
+    <string name="widgets_title">Widgets</string>
+    <string name="widgets_search">Search widgets</string>
+    <string name="widgets_empty">No widgets match</string>
     <string name="wallpaper_failed">Couldn\'t set that wallpaper</string>
     <string name="tab_personal">Personal</string>
     <string name="tab_work">Work</string>
