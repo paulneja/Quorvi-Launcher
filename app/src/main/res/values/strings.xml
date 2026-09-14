@@ -44,6 +44,9 @@
     <string name="edit_done">Done</string>
     <string name="edit_remove_page">Delete page</string>
     <string name="edit_remove_page_confirm">Sure? Delete all</string>
+    <string name="pin_title">Add to home screen</string>
+    <string name="pin_add">Add</string>
+    <string name="pin_cancel">Cancel</string>
     <string name="accounts_loading">Loading…</string>
     <string name="card_ci">GitHub CI</string>
     <string name="card_ci_failing">%1$d failing</string>
