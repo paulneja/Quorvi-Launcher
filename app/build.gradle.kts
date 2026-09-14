@@ -94,6 +94,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.test.core.ktx)
 
     androidTestImplementation(libs.androidx.test.runner)
