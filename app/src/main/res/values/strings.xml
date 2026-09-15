@@ -32,6 +32,14 @@
     <string name="widgets_search">Search widgets</string>
     <string name="widgets_empty">No widgets match</string>
     <string name="wallpaper_failed">Couldn\'t set that wallpaper</string>
+    <string name="wallpaper_title">Wallpaper</string>
+    <string name="wallpaper_pick">Choose a photo</string>
+    <string name="wallpaper_pick_hint">Quorvi keeps a copy for the glass and sets it as your wallpaper</string>
+    <string name="wallpaper_lock_too">Also on the lock screen</string>
+    <string name="wallpaper_current">Use my current wallpaper</string>
+    <string name="wallpaper_current_hint">Needs access to all files so Quorvi can read it</string>
+    <string name="wallpaper_current_live">Your current wallpaper is animated; the glass can\'t see it</string>
+    <string name="wallpaper_system">Android wallpaper picker</string>
     <string name="tab_personal">Personal</string>
     <string name="tab_work">Work</string>
     <string name="private_space">Private space</string>
