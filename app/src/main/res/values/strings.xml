@@ -5,6 +5,12 @@
     <string name="no_results">No apps match “%1$s”</string>
     <string name="launch_failed">Could not open %1$s</string>
     <string name="make_default">Set Quorvi as your home screen</string>
+    <string name="safe_title">Safe mode</string>
+    <string name="safe_body">Quorvi crashed several times in a row, so it opened a minimal home screen. Your layout is untouched.</string>
+    <string name="safe_retry">Try the normal home again</string>
+    <string name="safe_reset">Reset layout and retry</string>
+    <string name="safe_choose_home">Choose another home app</string>
+    <string name="safe_settings">Open Android settings</string>
     <string name="folder_default">Folder</string>
     <string name="widget_missing">Widget unavailable</string>
     <string name="menu_remove">Remove</string>
