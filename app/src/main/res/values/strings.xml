@@ -240,4 +240,7 @@
     <string name="menu_glass">Add glass space</string>
     <string name="blk_capsules_launcher">Capsule launcher</string>
     <string name="fb_title">Full backup (encrypted)</string>
+    <string name="import_err_access">Couldn\'t open the launcher\'s data</string>
+    <string name="import_err_no_db">That launcher has no layout database (launcher*.db)</string>
+    <string name="import_err_root">The root copy failed (code %d)</string>
 </resources>
