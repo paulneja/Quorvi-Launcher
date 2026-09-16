@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "quorvi/scene/v1",
+  "title": "Quorvi Canvas scene",
+  "type": "object",
+  "required": ["schemaVersion", "exportedAt", "grid", "appearance", "items"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "exportedAt": { "type": "integer" },
+    "grid": {
+      "type": "object",
+      "required": ["mode", "columns", "rows"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "enum": ["AUTO", "MANUAL"] },
+        "columns": { "type": "integer", "minimum": 3, "maximum": 8 },
+        "rows": { "type": "integer", "minimum": 3, "maximum": 10 }
+      }
+    },
+    "appearance": {
+      "type": "object",
+      "required": ["accent", "glass", "motion", "iconScale", "showLabels"],
+      "additionalProperties": false,
+      "properties": {
+        "accent": { "type": "integer" },
+        "glass": { "type": "number", "minimum": 0, "maximum": 1 },
+        "motion": { "enum": ["INSTANT", "BALANCED", "CINEMATIC"] },
+        "iconScale": { "type": "number", "minimum": 0.5, "maximum": 1.6 },
+        "showLabels": { "type": "boolean" },
+        "iconPack": { "type": ["string", "null"] }
+      }
+    },
+    "items": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "required": ["type", "container"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "enum": ["app", "widget", "folder", "shortcut", "clock"] },
+          "container": { "enum": ["page", "dock"] },
+          "page": { "type": "integer", "minimum": 0, "maximum": 32 },
+          "x": { "type": "integer", "minimum": 0, "maximum": 16 },
+          "y": { "type": "integer", "minimum": 0, "maximum": 16 },
+          "w": { "type": "integer", "minimum": 1, "maximum": 8 },
+          "h": { "type": "integer", "minimum": 1, "maximum": 10 },
+          "app": { "type": "string", "description": "package/class of the launcher activity" },
+          "shortcut": { "type": "string" },
+          "title": { "type": "string" },
+          "locked": { "type": "boolean" },
+          "children": { "type": "array", "items": { "type": "string" } },
+          "widgetProvider": { "type": "string", "description": "Exported for reference; widgets need a new bind on import" }
+        }
+      }
+    }
+  }
+}
