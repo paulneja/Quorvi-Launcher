@@ -97,5 +97,10 @@
                 <action android:name="android.content.pm.action.CONFIRM_PIN_APPWIDGET" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.studio.StudioActivity"
+            android:exported="false"
+            android:label="@string/menu_studio" />
     </application>
 </manifest>
