@@ -26,4 +26,18 @@ class SceneCodecTest {
     fun roundTrips() {
         assertEquals(scene, SceneCodec.decode(SceneCodec.encode(scene)).getOrThrow())
     }
+
+    @Test
+    fun rejectsUnknownVersionsTypesAndFields() {
+        assertTrue(SceneCodec.decode(SceneCodec.encode(scene.copy(schemaVersion = 2))).isFailure)
+        assertTrue(SceneCodec.decode(SceneCodec.encode(scene.copy(items = listOf(SceneItem("rocket", "page"))))).isFailure)
+        assertTrue(SceneCodec.decode(SceneCodec.encode(scene).replace("\"grid\"", "\"extra\": 1, \"grid\"")).isFailure)
+        assertTrue(SceneCodec.decode("not json").isFailure)
+    }
+
+    @Test
+    fun rejectsOutOfRangeValues() {
+        assertTrue(SceneCodec.decode(SceneCodec.encode(scene.copy(grid = SceneGrid("AUTO", 40, 5)))).isFailure)
+        assertTrue(SceneCodec.decode(SceneCodec.encode(scene.copy(items = listOf(SceneItem("app", "page", app = null))))).isFailure)
+    }
 }
