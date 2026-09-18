@@ -48,4 +48,30 @@ class LauncherImportTest {
         val plan = LauncherImport.plan(rows, setOf("x/X", "work/W"))
         assertEquals(listOf(ImportEntry.App("x/X")), plan.entries)
     }
+
+    @Test
+    fun componentIsReadFromIntentUri() {
+        assertEquals("com.app/com.app.Main", LauncherImport.componentOf("#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=com.app/.Main;end"))
+        assertEquals("x.y/z.Act", LauncherImport.componentOf("#Intent;component=x.y/z.Act;end"))
+        assertEquals(null, LauncherImport.componentOf("#Intent;action=VIEW;end"))
+    }
+
+    @Test
+    fun rootScriptCopiesTheNewestDatabaseAndItsJournal() {
+        val root = java.nio.file.Files.createTempDirectory("l3").toFile()
+        val src = java.io.File(root, "src").apply { mkdirs() }
+        val dest = java.io.File(root, "dest").apply { mkdirs() }
+        java.io.File(src, "launcher_old.db").apply { writeText("old"); setLastModified(1_000) }
+        java.io.File(src, "launcher.db").writeText("live")
+        java.io.File(src, "launcher.db-journal").writeText("journal")
+        listOf("", "-journal", "-wal", "-shm").forEach { java.io.File(dest, "l3.db$it").createNewFile() }
+        val p = ProcessBuilder("sh", "-c", com.paulneja.quorvi.launcher.home.LauncherImportSource.copyScript(src.path, dest.path)).redirectErrorStream(true).start()
+        assertEquals(0, p.waitFor())
+        assertEquals("live", java.io.File(dest, "l3.db").readText())
+        assertEquals("journal", java.io.File(dest, "l3.db-journal").readText())
+        assertEquals(0L, java.io.File(dest, "l3.db-wal").length())
+        val missing = ProcessBuilder("sh", "-c", com.paulneja.quorvi.launcher.home.LauncherImportSource.copyScript(java.io.File(root, "nope").path, dest.path)).start()
+        assertEquals(3, missing.waitFor())
+        root.deleteRecursively()
+    }
 }
