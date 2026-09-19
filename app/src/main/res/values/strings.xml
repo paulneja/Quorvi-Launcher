@@ -106,7 +106,20 @@
     <string name="card_stale">stale</string>
     <string name="card_ha">Home</string>
     <string name="card_ha_empty">Star entities in Accounts → Services to see them here.</string>
+    <string name="page_home">Home</string>
     <string name="page_today">Today</string>
+    <string name="page_control">Control</string>
+    <string name="page_nexo">Nexo</string>
+    <string name="page_apps">Apps</string>
+    <string name="page_empty">Empty</string>
+    <string name="pages_title">Panels</string>
+    <string name="pages_hint">Hold and slide to reorder</string>
+    <string name="pages_add">Add</string>
+    <string name="pages_edit">Edit</string>
+    <string name="pages_move_left">Move left</string>
+    <string name="pages_move_right">Move right</string>
+    <string name="pages_remove">Remove panel</string>
+    <string name="pages_pick_template">New panel from</string>
     <string name="panel_agent">AI agent</string>
     <string name="panel_github">GitHub</string>
     <string name="panel_network">Data &amp; network</string>
@@ -252,6 +265,7 @@
     <string name="preset_minimal">Minimal</string>
     <string name="preset_minimal_desc">Clock and your favorite apps as big text. No glass.</string>
     <string name="preset_suggested">suggested</string>
+    <string name="settings_title_nexo">Settings</string>
     <string name="set_start">Start layout</string>
     <string name="set_preset">Starting layout</string>
     <string name="set_restore">Restore previous layout</string>
@@ -326,6 +340,7 @@
     <string name="style_material3_hint">Solid surfaces with Quorvi\'s accent color, no transparency.</string>
     <string name="agent_open_chat">Open chat</string>
     <string name="agent_open_chat_desc">Conversations, memory and orchestra</string>
+    <string name="page_numbered">Page %1$d</string>
     <string name="agent_now">Running now</string>
     <string name="agent_how">How the agent works</string>
     <string name="agent_how_summary">%1$s · screen control %2$s</string>
@@ -343,6 +358,7 @@
     <string name="agent_history_desc">Long tasks, CI and capsules, with every step</string>
     <string name="bar_show">Panel bar at the bottom</string>
     <string name="pages_add_panel">Panel</string>
+    <string name="pages_remove_confirm">Sure? Remove</string>
     <string name="orientation">Orientation</string>
     <string name="orientation_auto">Automatic</string>
     <string name="orientation_portrait">Portrait</string>
@@ -367,6 +383,7 @@
     <string name="studio_unsuggested">Not suggested</string>
     <string name="studio_unsuggested_none">Every app can be suggested. Hold an app and pick “Don\'t suggest”.</string>
     <string name="studio_resuggest">Suggest again</string>
+    <string name="pages_full">You reached the maximum of %1$d panels. Remove one to add another.</string>
     <string name="clock_style">Style</string>
     <string name="clock_style_classic">Classic</string>
     <string name="clock_style_stacked">Stacked</string>
