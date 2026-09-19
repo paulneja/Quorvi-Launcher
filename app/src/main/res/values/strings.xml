@@ -114,6 +114,9 @@
     <string name="gh_signin">Sign in with GitHub</string>
     <string name="gh_signin_hint">Sign in to see CI and pull requests.</string>
     <string name="gh_empty_ci">No runs yet. Pick repos to watch in Accounts.</string>
+    <string name="net_wifi">Wi‑Fi</string>
+    <string name="net_connected">Connected</string>
+    <string name="net_off">Off</string>
     <string name="blk_allow">Allow</string>
     <string name="blk_setup">Set up</string>
     <string name="blk_ago">%s ago</string>
@@ -158,6 +161,10 @@
     <string name="blk_contacts">Favorites</string>
     <string name="blk_hosts">Servers</string>
     <string name="blk_http">HTTP widgets</string>
+    <string name="tg_bt">BT</string>
+    <string name="tg_data">Data</string>
+    <string name="tg_torch">Torch</string>
+    <string name="tg_dnd">Silent</string>
     <string name="blk_http_error">error</string>
     <string name="drawer_most_used">Most used</string>
     <string name="drawer_unsuggest_hint">Tap "Don\'t suggest" to remove it from Most used. You can bring it back in Settings → Apps.</string>
@@ -287,6 +294,14 @@
     <string name="clock_color_custom">Pick</string>
     <string name="clock_shadow">Soft shadow behind the clock</string>
     <string name="capsule_ai_draft">"Make me a capsule that "</string>
+    <string name="dev_charging">Charging</string>
+    <string name="dev_low">Low battery</string>
+    <string name="dev_battery">Battery</string>
+    <string name="dev_storage">Storage</string>
+    <string name="dev_memory">Memory used</string>
+    <string name="dev_free">%1$s free</string>
+    <string name="dev_of">%1$s / %2$s</string>
+    <string name="dev_on">On</string>
     <string name="blk_gh_pending">GitHub pending</string>
     <string name="blk_glass">Glass space</string>
     <string name="menu_glass">Add glass space</string>
