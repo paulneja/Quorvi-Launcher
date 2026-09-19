@@ -108,8 +108,26 @@
     <string name="card_ha_empty">Star entities in Accounts → Services to see them here.</string>
     <string name="page_today">Today</string>
     <string name="panel_agent">AI agent</string>
+    <string name="panel_github">GitHub</string>
     <string name="panel_network">Data &amp; network</string>
+    <string name="panel_network_short">Data</string>
     <string name="panel_system">System</string>
+    <string name="tile_agent_running">%1$d running · %2$s</string>
+    <string name="tile_agent_idle">Ready for a task</string>
+    <string name="tile_agent_nomodel">Add an AI model</string>
+    <string name="tile_agent_progress">%1$d/%2$d</string>
+    <string name="tile_github_ok">CI green</string>
+    <string name="tile_github_running">CI running</string>
+    <string name="tile_github_failing">%d failing</string>
+    <string name="tile_github_empty">Pick repos to watch</string>
+    <string name="tile_github_signin">Sign in</string>
+    <string name="tile_net_wifi">Wi‑Fi</string>
+    <string name="tile_net_cell">Mobile data</string>
+    <string name="tile_net_airplane">Airplane mode</string>
+    <string name="tile_net_offline">No connection</string>
+    <string name="tile_month">This month</string>
+    <string name="tile_sys_priv_none">Standard user</string>
+    <string name="tile_sys_charging">charging</string>
     <string name="agent_none">Nothing running. Ask for something above.</string>
     <string name="gh_signin">Sign in with GitHub</string>
     <string name="gh_signin_hint">Sign in to see CI and pull requests.</string>
@@ -245,6 +263,10 @@
     <string name="glass_opt_root">With root</string>
     <string name="glass_root_failed">Couldn\'t read the wallpaper with root</string>
     <string name="shell_title">Terminal</string>
+    <string name="shell_ready">Runtime ready · tap to open</string>
+    <string name="shell_installing">Preparing the runtime…</string>
+    <string name="shell_failed">Runtime failed · tap to retry</string>
+    <string name="shell_open">Open terminal</string>
     <string name="style_glass">Glass</string>
     <string name="style_material">Material</string>
     <string name="style_material_you">Material You</string>
@@ -257,6 +279,10 @@
     <string name="orientation_auto">Automatic</string>
     <string name="orientation_portrait">Portrait</string>
     <string name="orientation_landscape">Landscape</string>
+    <plurals name="tile_github_no_ci">
+        <item quantity="one">%1$d repo · no CI yet</item>
+        <item quantity="other">%1$d repos · no CI yet</item>
+    </plurals>
     <string name="blk_note">Note</string>
     <string name="blk_favorites">Favourite apps</string>
     <string name="picker_block">Block · %1$s</string>
@@ -305,6 +331,8 @@
     <string name="blk_gh_pending">GitHub pending</string>
     <string name="blk_glass">Glass space</string>
     <string name="menu_glass">Add glass space</string>
+    <string name="capsule_started">Running “%1$s”</string>
+    <string name="capsule_not_started">Could not start “%1$s”</string>
     <string name="blk_capsules_launcher">Capsule launcher</string>
     <string name="fb_title">Full backup (encrypted)</string>
     <string name="import_err_access">Couldn\'t open the launcher\'s data</string>
