@@ -17,9 +17,13 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        maven("https://jitpack.io") {
+            content { includeGroup("com.github.termux.termux-app") }
+        }
     }
 }
 
 rootProject.name = "Quorvi"
 include(":app")
 include(":benchmark")
+include(":runtime")
