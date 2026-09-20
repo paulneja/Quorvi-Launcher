@@ -111,12 +111,16 @@ interface HomeDao {
 @Database(
     entities = [
         HomeItemEntity::class,
+        com.paulneja.quorvi.core.command.CommandUsage::class,
+        com.paulneja.quorvi.core.command.CommandQuery::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
+
+    abstract fun commands(): com.paulneja.quorvi.core.command.CommandDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -139,7 +143,14 @@ abstract class QuorviDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS = arrayOf(MIGRATION_1_2)
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `command_usage` (`key` TEXT NOT NULL, `uses` INTEGER NOT NULL, `lastUsed` INTEGER NOT NULL, PRIMARY KEY(`key`))")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `command_queries` (`text` TEXT NOT NULL, `lastUsed` INTEGER NOT NULL, PRIMARY KEY(`text`))")
+            }
+        }
+
+        val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
         private const val CREATE_HOME_ITEMS_V2 = "CREATE TABLE IF NOT EXISTS `home_items` (" +
             "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` INTEGER NOT NULL, `container` INTEGER NOT NULL, " +
