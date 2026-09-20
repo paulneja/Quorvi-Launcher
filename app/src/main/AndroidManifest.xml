@@ -111,5 +111,10 @@
             android:name=".ui.studio.StudioActivity"
             android:exported="false"
             android:label="@string/menu_studio" />
+
+        <activity
+            android:name=".labs.LabActivity"
+            android:exported="false"
+            android:label="@string/labs_title" />
     </application>
 </manifest>

@@ -5,6 +5,7 @@
     <string name="no_results">No apps match “%1$s”</string>
     <string name="launch_failed">Could not open %1$s</string>
     <string name="make_default">Set Quorvi as your home screen</string>
+    <string name="labs_title">Labs</string>
     <string name="settings_default_home">Default home app</string>
     <string name="settings_default_home_on">Quorvi is the default home app</string>
     <string name="settings_default_home_off">Another app is the default home</string>
