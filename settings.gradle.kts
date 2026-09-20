@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Quorvi"
 include(":app")
+include(":benchmark")
