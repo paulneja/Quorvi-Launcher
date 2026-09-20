@@ -96,6 +96,8 @@
     <string name="studio_export_failed">Couldn\'t export the scene</string>
     <string name="studio_import_failed">That file isn\'t a valid Quorvi scene</string>
     <string name="studio_imported">Imported %1$d items · %2$d apps not installed · %3$d widgets to add again</string>
+    <string name="command_hint">Search apps, settings, contacts, math…</string>
+    <string name="command_suggested">Suggested</string>
     <string name="command_android_settings">Android settings</string>
     <string name="command_open_link">Open link</string>
     <string name="command_search_web">Search the web for “%1$s”</string>
@@ -103,6 +105,7 @@
     <string name="command_screenshot">Screenshot</string>
     <string name="command_grant_contacts">Allow Quorvi to search your contacts</string>
     <string name="command_grant_media">Allow Quorvi to find your screenshots</string>
+    <string name="command_copied">Copied %1$s</string>
     <string name="command_edit_home">Edit home screen</string>
     <string name="accounts_title">Accounts and models</string>
     <string name="accounts_loading">Loading…</string>
@@ -115,6 +118,8 @@
     <string name="command_agent_document">In the background · Markdown file in Downloads</string>
     <string name="command_agent_ci">In the background · diagnosis and patch, never pushes</string>
     <string name="command_agent_general">In the background · follow it in Operations</string>
+    <string name="command_agent_started">Agent started. You can keep using your phone.</string>
+    <string name="command_agent_unavailable">Quorvi core is not ready yet. Try again in a moment.</string>
     <string name="hosts_needs_key">Verify the host key to start</string>
     <string name="hosts_no_health">No data yet. Tap refresh.</string>
     <string name="card_missing">This card\'s source was removed. Long-press to remove it.</string>
@@ -402,6 +407,7 @@
     <string name="studio_unsuggested">Not suggested</string>
     <string name="studio_unsuggested_none">Every app can be suggested. Hold an app and pick “Don\'t suggest”.</string>
     <string name="studio_resuggest">Suggest again</string>
+    <string name="command_unsuggest">Don\'t suggest</string>
     <string name="pages_full">You reached the maximum of %1$d panels. Remove one to add another.</string>
     <string name="clock_style">Style</string>
     <string name="clock_style_classic">Classic</string>

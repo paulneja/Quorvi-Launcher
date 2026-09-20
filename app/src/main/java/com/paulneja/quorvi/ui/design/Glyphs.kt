@@ -39,6 +39,7 @@ object Glyphs {
     val Labs = glyph("labs", "M9 3h6", "M10 3v6L5 19h14L14 9V3")
     val Alarm = glyph("alarm", "M12 6a7 7 0 1 0 0 14a7 7 0 1 0 0-14z", "M12 10v3l2 2", "M4 5l3-2M20 5l-3-2")
     val Contact = glyph("contact", "M12 4a4 4 0 1 0 0 8a4 4 0 1 0 0-8z", "M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5")
+    val Calc = glyph("calc", "M6 3h12v18H6z", "M9 7h6", "M9 12h.01M12 12h.01M15 12h.01M9 16h.01M12 16h.01M15 16h.01")
     val Undo = glyph("undo", "M9 14L4 9l5-5", "M4 9h10a6 6 0 0 1 0 12h-3")
     val Redo = glyph("redo", "M15 14l5-5-5-5", "M20 9H10a6 6 0 0 0 0 12h3")
     val Quorvi = glyph("quorvi", "M11 4a7 7 0 1 0 0 14a7 7 0 1 0 0-14z", "M14.5 14.5l5 5")
