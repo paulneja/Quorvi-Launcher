@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.miuix.blur)
+    implementation(libs.okhttp)
     implementation(libs.androidx.profileinstaller)
     baselineProfile(project(":benchmark"))
     implementation(libs.hilt.android)
