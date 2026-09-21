@@ -8,6 +8,7 @@
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
     <uses-permission android:name="android.permission.SET_WALLPAPER" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.ACCESS_HIDDEN_PROFILES" />
@@ -117,5 +118,9 @@
             android:name=".labs.LabActivity"
             android:exported="false"
             android:label="@string/labs_title" />
+
+        <receiver
+            android:name=".labs.TermuxResultReceiver"
+            android:exported="false" />
     </application>
 </manifest>
