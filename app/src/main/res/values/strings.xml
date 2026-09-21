@@ -356,6 +356,7 @@
     <string name="shell_installing">Preparing the runtime…</string>
     <string name="shell_failed">Runtime failed · tap to retry</string>
     <string name="shell_open">Open terminal</string>
+    <string name="shell_missing">The terminal isn\'t ready yet</string>
     <string name="style_glass">Glass</string>
     <string name="style_material">Material</string>
     <string name="style_material_you">Material You</string>
