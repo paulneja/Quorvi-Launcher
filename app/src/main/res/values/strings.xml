@@ -114,6 +114,13 @@
     <string name="card_ci">GitHub CI</string>
     <string name="card_ci_failing">%1$d failing</string>
     <string name="card_ci_empty">No workflow runs yet. Pick repositories in Accounts.</string>
+    <string name="agents_channel">Nexo agents working in the background</string>
+    <string name="agents_stop_all">Stop all</string>
+    <string name="agents_working_hint">Open Operations to see each step.</string>
+    <plurals name="agents_working">
+        <item quantity="one">%d agent working</item>
+        <item quantity="other">%d agents working</item>
+    </plurals>
     <string name="command_agent_title">Ask an agent</string>
     <string name="command_agent_document">In the background · Markdown file in Downloads</string>
     <string name="command_agent_ci">In the background · diagnosis and patch, never pushes</string>
