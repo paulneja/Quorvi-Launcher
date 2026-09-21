@@ -64,3 +64,10 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - Three backdrops: **chrome** (wallpaper only: dock, search, folder icons), **overlay** (wallpaper + canvas: folders, widget picker) and **top** (whole screen, recorded only while a menu or the background sheet is open; recording it always cost a frame per drawer movement).
 - The canvas layer is recorded inside the `graphicsLayer` that animates alpha/scale so the animation doesn't invalidate it.
 - Measured on an Armor 29 Ultra (release, 120 Hz): bare launcher 0.69 % jank / p99 10 ms; first glass version 1.89 % / 20 ms; with these optimizations 1.03–1.56 % / 11–14 ms. Target < 1 %.
+
+## Runtime
+
+- The official Termux bootstrap is pinned by sha256 per ABI. Every `.deb` is rewritten before dpkg through a `DPkg::Pre-Install-Pkgs` hook (unpack, move `data/data/com.termux` to the app's prefix, `sed`, symlinks, script permissions, repack).
+- The apt mirror is pinned to `packages-cf.termux.dev`; random mirror selection kept hitting dead mirrors.
+- `IShellService` (AIDL): typed JSON `exec` with `argv`, timeout and output limit; `kill`/`killAll` for the kill switch; `export` to MediaStore.Downloads that rereads and returns both sha256 values plus the magic bytes; `read`/`write`/`list` confined to the runtime home.
+- The terminal has Termux-style extra keys and "mount sdcard" (`~/storage`).
