@@ -149,6 +149,9 @@
     <string name="command_agent_general">In the background · follow it in Operations</string>
     <string name="command_agent_started">Agent started. You can keep using your phone.</string>
     <string name="command_agent_unavailable">Quorvi core is not ready yet. Try again in a moment.</string>
+    <string name="agent_needs_answer">An agent needs your answer</string>
+    <string name="agent_needs_capability">An agent is waiting for a capability</string>
+    <string name="agent_interrupted">An agent was interrupted</string>
     <string name="ops_diagnose">Diagnose with an agent</string>
     <string name="ops_diagnose_goal">Find out why %1$s #%2$d failed in %3$s and propose a fix</string>
     <string name="ops_kill_hint">Cancels every agent and stops their processes</string>
