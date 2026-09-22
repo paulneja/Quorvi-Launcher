@@ -92,4 +92,5 @@ object Glyphs {
     val Storm = glyph("storm", "M7.5 15h10a4 4 0 0 0 .5-8a6 6 0 0 0-11.5 1.5A3.3 3.3 0 0 0 7.5 15z", "M12.5 15l-2 3.5h3l-2 3.5")
     val Fog = glyph("fog", "M4 10h16M6 14h12M8 18h8")
     val Drop = glyph("drop", "M12 4s6 6.5 6 10.5a6 6 0 0 1-12 0C6 10.5 12 4 12 4z")
+    val Check = glyph("check", "M5 12.5l4.5 4.5L19 7.5")
 }
