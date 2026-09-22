@@ -114,6 +114,11 @@
         </activity>
 
         <activity
+            android:name=".ui.operations.OperationsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".ui.studio.StudioActivity"
             android:exported="false"
             android:label="@string/menu_studio" />
