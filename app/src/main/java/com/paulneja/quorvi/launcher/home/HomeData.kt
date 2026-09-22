@@ -113,14 +113,24 @@ interface HomeDao {
         HomeItemEntity::class,
         com.paulneja.quorvi.core.command.CommandUsage::class,
         com.paulneja.quorvi.core.command.CommandQuery::class,
+        com.paulneja.quorvi.ops.RunEntity::class,
+        com.paulneja.quorvi.ops.StepEntity::class,
+        com.paulneja.quorvi.ops.EventEntity::class,
+        com.paulneja.quorvi.ops.ArtifactEntity::class,
+        com.paulneja.quorvi.ops.CiExecutionEntity::class,
+        com.paulneja.quorvi.ops.CiJobEntity::class,
+        com.paulneja.quorvi.ops.WatchedRepoEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
+    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4)],
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
 
     abstract fun commands(): com.paulneja.quorvi.core.command.CommandDao
+
+    abstract fun ops(): com.paulneja.quorvi.ops.OpsDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
