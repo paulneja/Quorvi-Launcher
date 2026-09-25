@@ -78,4 +78,61 @@ class GitHubConnectorTest {
         server.takeRequest()
         assertEquals("Bearer new", server.takeRequest().headers["Authorization"])
     }
+
+    @Test
+    fun rateLimitAndServerErrorsAreTyped() = runBlocking {
+        val vault = MemoryVault()
+        val t = tokens(vault)
+        t.save(DevicePoll.Token("tok", null, null, null))
+        val api = GitHubApi(http, t, base())
+        server.enqueue(MockResponse.Builder().code(403).body("{}").addHeader("x-ratelimit-remaining", "0").build())
+        try { api.viewer(); fail() } catch (e: HttpStatusException) { assertTrue(e.rateLimited); assertTrue(!e.unauthorized) }
+        server.enqueue(json(500, "{}"))
+        try { api.viewer(); fail() } catch (e: HttpStatusException) { assertTrue(e.transient) }
+    }
+
+    @Test
+    fun reposArePaginatedUntilAShortPage() = runBlocking {
+        val vault = MemoryVault()
+        val t = tokens(vault)
+        t.save(DevicePoll.Token("tok", null, null, null))
+        val api = GitHubApi(http, t, base())
+        val full = (1..100).joinToString(",", "[", "]") { """{"full_name":"o/r$it"}""" }
+        server.enqueue(json(200, full))
+        server.enqueue(json(200, """[{"full_name":"o/last","private":true}]"""))
+        val repos = api.repos()
+        assertEquals(101, repos.size)
+        assertTrue(repos.last().private)
+    }
+
+    @Test
+    fun runsAndJobsDecode() = runBlocking {
+        val vault = MemoryVault()
+        val t = tokens(vault)
+        t.save(DevicePoll.Token("tok", null, null, null))
+        val api = GitHubApi(http, t, base())
+        server.enqueue(json(200, """{"total_count":1,"workflow_runs":[{"id":7,"name":"CI","status":"completed","conclusion":"failure","run_number":42,"head_branch":"main","html_url":"u"}]}"""))
+        server.enqueue(json(200, """{"jobs":[{"id":9,"name":"build","conclusion":"failure","steps":[{"name":"Checkout","number":1,"conclusion":"success"},{"name":"Test","number":2,"conclusion":"failure"}]}]}"""))
+        val run = api.runs("o/r").single()
+        assertEquals("failure", run.conclusion)
+        assertEquals(42, run.runNumber)
+        val job = api.jobs("o/r", run.id).single()
+        assertEquals("Test", job.steps.first { it.conclusion == "failure" }.name)
+    }
+
+    @Test
+    fun logsSplitIntoStepsWithErrors() {
+        val raw = """
+            2024-05-01T10:00:00.0000000Z ##[group]Run actions/checkout@v4
+            2024-05-01T10:00:01.0000000Z Syncing repository
+            2024-05-01T10:00:02.0000000Z ##[endgroup]
+            2024-05-01T10:00:03.0000000Z ##[group]Run ./gradlew test
+            2024-05-01T10:00:04.0000000Z > Task :app:test FAILED
+            2024-05-01T10:00:05.0000000Z ##[error]Process completed with exit code 1.
+        """.trimIndent()
+        val sections = ActionsLog.sections(raw)
+        assertEquals(listOf("actions/checkout@v4", "./gradlew test"), sections.map { it.title })
+        assertEquals(listOf("Process completed with exit code 1."), sections[1].errors)
+        assertTrue(ActionsLog.failureExcerpt(raw).startsWith("Step: ./gradlew test"))
+    }
 }
