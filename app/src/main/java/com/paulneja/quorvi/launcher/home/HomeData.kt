@@ -120,10 +120,11 @@ interface HomeDao {
         com.paulneja.quorvi.ops.CiExecutionEntity::class,
         com.paulneja.quorvi.ops.CiJobEntity::class,
         com.paulneja.quorvi.ops.WatchedRepoEntity::class,
+        com.paulneja.quorvi.agent.models.ProviderEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
-    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4)],
+    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5)],
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
@@ -131,6 +132,8 @@ abstract class QuorviDatabase : RoomDatabase() {
     abstract fun commands(): com.paulneja.quorvi.core.command.CommandDao
 
     abstract fun ops(): com.paulneja.quorvi.ops.OpsDao
+
+    abstract fun providers(): com.paulneja.quorvi.agent.models.ProviderDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
