@@ -574,6 +574,19 @@
     <string name="blk_gh_pending">GitHub pending</string>
     <string name="blk_glass">Glass space</string>
     <string name="menu_glass">Add glass space</string>
+    <string name="gh_pending_signin">Connect GitHub to see your pending issues and PRs.</string>
+    <string name="gh_pending_connect">Connect</string>
+    <string name="gh_pending_counts">%1$d PR · %2$d issues</string>
+    <string name="gh_pending_none">Nothing pending. 🎉</string>
+    <string name="gh_pending_no_ignored">Nothing ignored.</string>
+    <string name="gh_pending_back">Back to pending</string>
+    <string name="gh_pending_review">review requested</string>
+    <string name="gh_pending_ignore">Ignore</string>
+    <string name="gh_pending_unignore">Show</string>
+    <plurals name="gh_pending_ignored">
+        <item quantity="one">%d ignored</item>
+        <item quantity="other">%d ignored</item>
+    </plurals>
     <string name="capsule_started">Running “%1$s”</string>
     <string name="capsule_not_started">Could not start “%1$s”</string>
     <string name="blk_capsules_launcher">Capsule launcher</string>

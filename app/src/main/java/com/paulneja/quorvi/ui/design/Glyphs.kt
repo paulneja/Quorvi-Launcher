@@ -55,6 +55,7 @@ object Glyphs {
     val Sliders = glyph("sliders", "M5 7h9M18 7h1M5 17h3M12 17h7", "M16 5a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M10 15a2 2 0 1 0 0 4a2 2 0 1 0 0-4z")
     val Apps = glyph("apps", "M7 5a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M17 5a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M7 15a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M17 15a2 2 0 1 0 0 4a2 2 0 1 0 0-4z")
     val Git = glyph("git", "M6 4a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M6 16a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M18 6a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M6 8v8M18 10c0 4-6 3-10.5 7")
+    val PullRequest = glyph("pr", "M6 4a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M6 16a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M18 16a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M6 8v8M18 16V9a3 3 0 0 0-3-3h-4M13 4l-2 2 2 2")
     val Network = glyph("network", "M8 4v16M8 4L4.5 7.5M8 4l3.5 3.5", "M16 20V4M16 20l-3.5-3.5M16 20l3.5-3.5")
     val Chip = glyph("chip", "M6 6h12v12H6z", "M9.5 9.5h5v5h-5z", "M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3")
     val Chevron = glyph("chevron", "M9 6l6 6-6 6")
@@ -94,6 +95,7 @@ object Glyphs {
     val Fog = glyph("fog", "M4 10h16M6 14h12M8 18h8")
     val Drop = glyph("drop", "M12 4s6 6.5 6 10.5a6 6 0 0 1-12 0C6 10.5 12 4 12 4z")
     val Check = glyph("check", "M5 12.5l4.5 4.5L19 7.5")
+    val Retry = glyph("retry", "M4 12a8 8 0 1 0 2.5-5.8", "M4 4v4h4")
     val Brain = glyph("brain", "M9 4a3 3 0 0 0-3 3a3 3 0 0 0-2 5a3 3 0 0 0 2 5a3 3 0 0 0 6 1V6a2 2 0 0 0-3-2z", "M15 4a3 3 0 0 1 3 3a3 3 0 0 1 2 5a3 3 0 0 1-2 5a3 3 0 0 1-6 1")
     val Sparkle = glyph("sparkle", "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z", "M19 16l.7 1.8l1.8.7l-1.8.7L19 21l-.7-1.8l-1.8-.7l1.8-.7z")
 }
