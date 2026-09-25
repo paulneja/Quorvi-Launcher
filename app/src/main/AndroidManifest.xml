@@ -120,6 +120,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".ui.accounts.AccountsActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".ui.studio.StudioActivity"
             android:exported="false"
             android:label="@string/menu_studio" />

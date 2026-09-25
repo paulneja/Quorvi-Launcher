@@ -65,6 +65,7 @@ object Glyphs {
     val Bluetooth = glyph("bluetooth", "M7 7l10 10-5 4V3l5 4L7 17")
     val Send = glyph("send", "M5 12h13", "M13 6l6 6-6 6")
     val Shield = glyph("shield", "M12 3l7 3v5c0 5-3.5 8.5-7 10c-3.5-1.5-7-5-7-10V6z")
+    val Lan = glyph("lan", "M9 3h6v5H9z", "M3 16h6v5H3z", "M15 16h6v5h-6z", "M12 8v4M6 16v-4h12v4")
     val Bolt = glyph("bolt", "M13 3L5 13.5h6L10 21l8-10.5h-6z")
     val Hotspot = glyph("hotspot", "M12 10a2 2 0 1 0 0 4a2 2 0 1 0 0-4z", "M8 8a5.6 5.6 0 0 0 0 8M16 8a5.6 5.6 0 0 1 0 8M5.5 5.5a9.2 9.2 0 0 0 0 13M18.5 5.5a9.2 9.2 0 0 1 0 13")
     val Vpn = glyph("vpn", "M5 11h14v9H5z", "M8.5 11V8a3.5 3.5 0 0 1 7 0v3")
@@ -93,4 +94,6 @@ object Glyphs {
     val Fog = glyph("fog", "M4 10h16M6 14h12M8 18h8")
     val Drop = glyph("drop", "M12 4s6 6.5 6 10.5a6 6 0 0 1-12 0C6 10.5 12 4 12 4z")
     val Check = glyph("check", "M5 12.5l4.5 4.5L19 7.5")
+    val Brain = glyph("brain", "M9 4a3 3 0 0 0-3 3a3 3 0 0 0-2 5a3 3 0 0 0 2 5a3 3 0 0 0 6 1V6a2 2 0 0 0-3-2z", "M15 4a3 3 0 0 1 3 3a3 3 0 0 1 2 5a3 3 0 0 1-2 5a3 3 0 0 1-6 1")
+    val Sparkle = glyph("sparkle", "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z", "M19 16l.7 1.8l1.8.7l-1.8.7L19 21l-.7-1.8l-1.8-.7l1.8-.7z")
 }
