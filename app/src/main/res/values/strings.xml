@@ -423,6 +423,13 @@
     <string name="import_failed">Couldn\'t import: %s</string>
     <string name="import_empty">Nothing to import: no installed apps found in that layout</string>
     <string name="import_done">Imported %1$d apps in %2$d folders</string>
+    <string name="models_loading">Loading models…</string>
+    <string name="models_error">Couldn\'t list models: %s</string>
+    <string name="models_retry">Retry</string>
+    <string name="models_search">Search %d models</string>
+    <string name="models_none">No model matches</string>
+    <string name="models_manual">Type an ID by hand</string>
+    <string name="models_hide_manual">Hide manual ID</string>
     <string name="glass_opt_pick">Pick wallpaper</string>
     <string name="glass_opt_current">Use current</string>
     <string name="glass_opt_root">With root</string>
