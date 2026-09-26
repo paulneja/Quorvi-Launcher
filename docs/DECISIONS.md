@@ -71,3 +71,12 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - The apt mirror is pinned to `packages-cf.termux.dev`; random mirror selection kept hitting dead mirrors.
 - `IShellService` (AIDL): typed JSON `exec` with `argv`, timeout and output limit; `kill`/`killAll` for the kill switch; `export` to MediaStore.Downloads that rereads and returns both sha256 values plus the magic bytes; `read`/`write`/`list` confined to the runtime home.
 - The terminal has Termux-style extra keys and "mount sdcard" (`~/storage`).
+
+## Agent engine
+
+- Runs in `:work`. Pipeline: rule-based classification → JSON plan with a DAG (cycles rejected, default plan if the model fails) → steps with a tool-call loop (`step_done` / `step_blocked`) → deterministic verification → COMPLETED or FAILED. A document requires an exported, verified artifact; a CI diagnosis requires `report.md`.
+- Run state transitions are compare-and-set (`UPDATE … WHERE state = :from`); heartbeat, tokens and checkpoint are per-field updates, so the kill switch and the engine never overwrite each other.
+- Every HTTP call is cancelled with its coroutine (a child job calls `call.cancel()`); a blocked socket read ignores cancellation otherwise.
+- Tool names on the wire use `_` (`fs_write`) because OpenAI and Copilot only accept `[a-zA-Z0-9_-]`; internally they keep the dot.
+- `CoreService` becomes a `dataSync` foreground service with a "Stop all" notification only while agents run, holding a wake lock. Optional protection mode (Shizuku/root): Doze whitelist, background appops, "active" standby bucket and, with root, a high OOM priority for the agent process.
+- User-visible engine messages come from string resources through `EngineTexts`.
