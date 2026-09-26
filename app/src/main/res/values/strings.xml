@@ -593,6 +593,14 @@
     <string name="command_capsule">Capsule · tap to launch</string>
     <string name="models_choose_short">Models</string>
     <string name="fb_title">Full backup (encrypted)</string>
+    <string name="engine_no_model">No model is set up. Add a provider in Settings → AI and try again.</string>
+    <string name="engine_blocked">Blocked:</string>
+    <string name="engine_unreachable">Couldn\'t reach the model: %s</string>
+    <string name="engine_bad_key">The provider rejected the key (HTTP %d). Check it in Settings → AI.</string>
+    <string name="engine_rate_limited">The provider is rate limiting requests (429). Try again in a while or add a backup model.</string>
+    <string name="engine_provider_error">The provider answered with an error (HTTP %d).</string>
+    <string name="engine_timeout">The model took too long to answer.</string>
+    <string name="engine_failed">Something went wrong: %s</string>
     <string name="import_err_access">Couldn\'t open the launcher\'s data</string>
     <string name="import_err_no_db">That launcher has no layout database (launcher*.db)</string>
     <string name="import_err_root">The root copy failed (code %d)</string>
