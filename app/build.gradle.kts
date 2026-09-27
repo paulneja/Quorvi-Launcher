@@ -57,6 +57,12 @@ android {
         aidl = true
     }
 
+    packaging {
+        resources {
+            excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/BCKEY.DSA", "META-INF/BCKEY.SF", "META-INF/DEPENDENCIES", "META-INF/LICENSE.md", "META-INF/NOTICE.md")
+        }
+    }
+
     testOptions {
         unitTests.isIncludeAndroidResources = true
     }
@@ -96,6 +102,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.miuix.blur)
     implementation(libs.okhttp)
+    implementation(libs.sshj)
+    implementation(libs.bouncycastle.prov)
+    implementation(libs.bouncycastle.pkix)
     implementation(libs.androidx.profileinstaller)
     baselineProfile(project(":benchmark"))
     implementation(libs.hilt.android)
