@@ -170,4 +170,102 @@ class AgentEngineTest {
         assertTrue(policyStore.approvals.isEmpty())
         assertTrue(workspace.commands.isEmpty())
     }
+
+    @Test
+    fun lowBatteryParksTheRunUntilTheDeviceRecovers() {
+        device.state = com.paulneja.quorvi.agent.policy.DeviceState(battery = 8, charging = false, unmetered = true)
+        val model = ScriptedModel(listOf(
+            Turn.Text("""{"steps":[{"id":"s1","title":"Build","dependsOn":[]}]}"""),
+            call("shell.exec", "argv" to listOf("make")),
+            call("shell.exec", "argv" to listOf("make")),
+            call("step.done", "summary" to "built"),
+        ))
+        val engine = engine(model)
+        val id = engine.submit("""{"goal":"compilá el proyecto"}""")
+        val parked = awaitState(id, RunState.WAITING_CAPABILITY)
+        assertTrue(parked.error!!.startsWith(AgentEngine.WAIT_PREFIX + "battery"))
+        assertTrue(workspace.commands.isEmpty())
+        device.state = com.paulneja.quorvi.agent.policy.DeviceState(battery = 8, charging = true, unmetered = true)
+        engine.resume(id)
+        assertEquals(RunState.COMPLETED.name, awaitState(id, RunState.COMPLETED, RunState.FAILED).state)
+        assertEquals(listOf(listOf("make")), workspace.commands)
+    }
+
+    @Test
+    fun killSwitchStopsARunWhoseModelHangs() {
+        val model = ScriptedModel(listOf(plan, Turn.Hang))
+        val engine = engine(model, limits = EngineLimits(modelTimeoutMs = 60_000))
+        val id = engine.submit("""{"goal":"documento en Descargas"}""")
+        awaitState(id, RunState.RUNNING)
+        runBlocking { delay(200) }
+        val started = System.currentTimeMillis()
+        engine.killAll()
+        assertEquals(RunState.CANCELLED.name, awaitState(id, RunState.CANCELLED, timeoutMs = 3_000).state)
+        assertTrue(System.currentTimeMillis() - started < 3_000)
+        assertTrue(workspace.killed >= 1)
+    }
+
+    @Test
+    fun missingModelOrRuntimeWaitsForCapability() {
+        val id = engine(null).submit("""{"goal":"hacé algo"}""")
+        val run = awaitState(id, RunState.WAITING_CAPABILITY)
+        assertTrue(run.error!!.contains("AI provider"))
+
+        val toolbox = FakeToolBox(workspace, dao, missing = "Quorvi Shell is not installed")
+        val other = engine(ScriptedModel(emptyList()), toolbox).submit("""{"goal":"hacé otra cosa"}""")
+        assertEquals("Quorvi Shell is not installed", awaitState(other, RunState.WAITING_CAPABILITY).error)
+    }
+
+    @Test
+    fun interruptedRunResumesFromItsCheckpoint() {
+        val id = "run-1"
+        runBlocking {
+            dao.insertRun(RunEntity(id = id, origin = "command", goal = "documento en Descargas", state = RunState.RUNNING.name, createdAt = 1, updatedAt = 1, policy = """{"goal":"documento en Descargas"}"""))
+            dao.upsertStep(StepEntity(id = "$id/draft", runId = id, position = 0, title = "Write the document", kind = "agent", state = StepState.SUCCEEDED.name, output = "doc.md written", attempt = 1))
+            dao.upsertStep(StepEntity(id = "$id/export", runId = id, position = 1, title = "Export it", kind = "agent", dependsOn = "$id/draft", state = StepState.RUNNING.name, attempt = 1))
+            workspace.files["runs/$id/doc.md"] = "# Doc\n\ncontenido"
+            RunCoordinator(dao, scope).reconcile()
+        }
+        assertEquals(RunState.INTERRUPTED.name, runBlocking { dao.run(id) }!!.state)
+        val model = ScriptedModel(listOf(
+            call("artifact.export", "path" to "doc.md", "name" to "Doc.md", "mime" to "text/markdown"),
+            call("step.done", "summary" to "exported"),
+        ))
+        engine(model).resume(id)
+        val run = awaitState(id, RunState.COMPLETED, RunState.FAILED)
+        assertEquals(run.error, RunState.COMPLETED.name, run.state)
+        assertEquals(2, run.attempt)
+        assertEquals(2, model.requests.size)
+        assertTrue(model.requests.first().messages.first().text.contains("doc.md written"))
+    }
+
+    @Test
+    fun blockedStepWaitsForTheUserAndContinuesWithTheAnswer() {
+        val model = ScriptedModel(listOf(
+            Turn.Text("""{"steps":[{"id":"s1","title":"Ask","dependsOn":[]}]}"""),
+            call("step.blocked", "reason" to "need format", "question" to "¿PDF o Markdown?"),
+            call("step.done", "summary" to "ok"),
+        ))
+        val engine = engine(model)
+        val id = engine.submit("""{"goal":"hacé algo"}""")
+        awaitState(id, RunState.WAITING_USER)
+        assertEquals("¿PDF o Markdown?", runBlocking { dao.lastEvent(id, "question") }!!.message)
+        engine.answer(id, "Markdown")
+        assertEquals(RunState.COMPLETED.name, awaitState(id, RunState.COMPLETED, RunState.FAILED).state)
+        assertTrue(model.requests.last().messages.first().text.contains("Markdown"))
+    }
+
+    @Test
+    fun ciDiagnosisCompletesOnlyWithAReport() {
+        val plan = Turn.Text("""{"steps":[{"id":"report","title":"Write the report","dependsOn":[]}]}""")
+        val without = ScriptedModel(listOf(plan, call("step.done", "summary" to "the test failed")))
+        val failed = engine(without).submit("""{"goal":"por qué falló","ciExecutionId":"github:octo/app:7"}""")
+        val run = awaitState(failed, RunState.COMPLETED, RunState.FAILED)
+        assertEquals(RunState.FAILED.name, run.state)
+        assertTrue(run.error!!.contains("report.md"))
+
+        val with = ScriptedModel(listOf(plan, call("fs.write", "path" to "report.md", "content" to "Cause: ExampleTest.adds fails"), call("step.done", "summary" to "report.md")))
+        val ok = engine(with).submit("""{"goal":"por qué falló","ciExecutionId":"github:octo/app:7"}""")
+        assertEquals(RunState.COMPLETED.name, awaitState(ok, RunState.COMPLETED, RunState.FAILED).state)
+    }
 }
