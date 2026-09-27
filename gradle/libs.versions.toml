@@ -18,6 +18,8 @@ miuix = "0.9.4"
 okhttp = "5.5.0"
 sshj = "0.41.1"
 bouncycastle = "1.86"
+mina-sshd = "2.20.0"
+slf4j = "2.0.20"
 termux = "v0.118.1"
 benchmark = "1.5.0"
 uiautomator = "2.4.0"
@@ -65,6 +67,8 @@ okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver3", version
 sshj = { module = "com.hierynomus:sshj", version.ref = "sshj" }
 bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 bouncycastle-pkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+mina-sshd-core = { module = "org.apache.sshd:sshd-core", version.ref = "mina-sshd" }
+slf4j-nop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
 termux-terminal-emulator = { module = "com.github.termux.termux-app:terminal-emulator", version.ref = "termux" }
 termux-terminal-view = { module = "com.github.termux.termux-app:terminal-view", version.ref = "termux" }
 miuix-blur = { module = "top.yukonga.miuix.kmp:miuix-blur-android", version.ref = "miuix" }

@@ -125,6 +125,8 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.androidx.test.core.ktx)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.mina.sshd.core)
+    testImplementation(libs.slf4j.nop)
 
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
