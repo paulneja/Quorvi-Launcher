@@ -76,4 +76,46 @@ class SshConnectorTest {
             assertEquals("SHA256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", e.expected)
         }
     }
+
+    @Test
+    fun passwordAuthAndItsFailure() = runBlocking {
+        val pin = connector.probe(host()).fingerprint
+        credentials.setPassword("p1", "secret")
+        assertEquals("ok\n", connector.exec(host(pin, "PASSWORD", "p1"), "echo ok").stdout)
+        credentials.setPassword("p2", "wrong")
+        try {
+            connector.exec(host(pin, "PASSWORD", "p2"), "echo ok")
+            fail("wrong password accepted")
+        } catch (e: SshException.AuthFailed) {
+        }
+    }
+
+    @Test
+    fun authorizedKeyLineMatchesTheStoredKey() {
+        val pair = credentials.ensureKey("h1")
+        val line = SshCrypto.authorizedKey(pair.public, "nexo@phone")
+        val parsed = AuthorizedKeyEntry.parseAuthorizedKeyEntry(line).resolvePublicKey(null, emptyMap(), null)
+        assertEquals(pair.public, parsed)
+        assertTrue(line.startsWith("ssh-ed25519 ") && line.endsWith(" nexo@phone"))
+    }
+
+    @Test
+    fun healthProbeParsesARealLinuxHost() = runBlocking {
+        val pin = connector.probe(host()).fingerprint
+        val health = HostProbe.parse(connector.exec(host(pin), HostProbe.COMMAND).stdout)
+        assertTrue(health.kernel.startsWith("Linux"))
+        assertTrue((health.cpus ?: 0) > 0)
+        assertTrue((health.memTotal ?: 0) > 0)
+        assertTrue((health.uptimeSec ?: 0) > 0)
+    }
+
+    @Test
+    fun dockerCommandsRejectInjection() {
+        assertEquals("docker restart web_1", Docker.action(DockerAction.RESTART, "web_1"))
+        listOf("a;rm -rf /", "\$(id)", "-rm", "a b").forEach { bad ->
+            try { Docker.action(DockerAction.STOP, bad); fail("accepted $bad") } catch (e: IllegalArgumentException) { }
+        }
+        val parsed = Docker.parse("""{"ID":"abc","Names":"web","Image":"nginx","State":"running","Status":"Up 2 hours"}""" + "\nnoise\n")
+        assertEquals(listOf("web"), parsed.map { it.name })
+    }
 }
