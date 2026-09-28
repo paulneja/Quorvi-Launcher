@@ -124,10 +124,14 @@ interface HomeDao {
         com.paulneja.quorvi.connections.HostEntity::class,
         com.paulneja.quorvi.connections.ContainerEntity::class,
         com.paulneja.quorvi.connections.HttpWidgetEntity::class,
+        com.paulneja.quorvi.agent.policy.PolicySettingEntity::class,
+        com.paulneja.quorvi.agent.policy.GrantEntity::class,
+        com.paulneja.quorvi.agent.policy.ApprovalEntity::class,
+        com.paulneja.quorvi.agent.policy.AuditEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
-    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6)],
+    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7)],
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
@@ -139,6 +143,8 @@ abstract class QuorviDatabase : RoomDatabase() {
     abstract fun providers(): com.paulneja.quorvi.agent.models.ProviderDao
 
     abstract fun connections(): com.paulneja.quorvi.connections.ConnectionsDao
+
+    abstract fun policy(): com.paulneja.quorvi.agent.policy.PolicyDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
