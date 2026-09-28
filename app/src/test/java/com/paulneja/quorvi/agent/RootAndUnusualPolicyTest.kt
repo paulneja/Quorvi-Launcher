@@ -45,4 +45,27 @@ class RootAndUnusualPolicyTest {
         store.grants += GrantEntity("g", "r1", PolicyService.ROOT, "*", 0, usesLeft = null)
         assertEquals(Verdict.REQUIRE_CONFIRMATION, policy.check("r1", shell, argv("bash", "-lc", "su -c reboot")).verdict)
     }
+
+    @Test
+    fun aOneTimeRootApprovalCoversExactlyThatCommandOnce() = runBlocking {
+        val store = MemoryPolicyStore()
+        val policy = PolicyService(store, FakeDevice())
+        val args = argv("bash", "-lc", "su -c id")
+        policy.check("r1", shell, args)
+        val resource = store.approvals.single().resource
+        store.grants += GrantEntity("g", "r1", PolicyService.ROOT, resource, 0, usesLeft = 1)
+        assertEquals(Verdict.ALLOW, policy.check("r1", shell, args).verdict)
+        assertEquals(Verdict.REQUIRE_CONFIRMATION, policy.check("r1", shell, args).verdict)
+    }
+
+    @Test
+    fun unusualWorkAsksInBypassUntilTheSessionIsTrusted() = runBlocking {
+        val store = MemoryPolicyStore(PolicyConfig(mode = AutonomyMode.BYPASS))
+        val policy = PolicyService(store, FakeDevice())
+        assertEquals(Verdict.REQUIRE_CONFIRMATION, policy.check("r1", shell, argv("bash", "-lc", "rm -rf build")).verdict)
+        assertEquals(PolicyService.UNUSUAL, store.approvals.single().action)
+        store.grants += GrantEntity("g", "agent", PolicyService.UNUSUAL, "*", 0, expiresAt = Long.MAX_VALUE)
+        assertEquals(Verdict.ALLOW, policy.check("r2", shell, argv("bash", "-lc", "rm -rf dist")).verdict)
+        assertEquals(Verdict.ALLOW, policy.check("r2", shell, argv("git", "status")).verdict)
+    }
 }
