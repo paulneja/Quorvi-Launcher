@@ -80,3 +80,25 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - Tool names on the wire use `_` (`fs_write`) because OpenAI and Copilot only accept `[a-zA-Z0-9_-]`; internally they keep the dot.
 - `CoreService` becomes a `dataSync` foreground service with a "Stop all" notification only while agents run, holding a wake lock. Optional protection mode (Shizuku/root): Doze whitelist, background appops, "active" standby bucket and, with root, a high OOM priority for the agent process.
 - User-visible engine messages come from string resources through `EngineTexts`.
+
+## Policy and approvals
+
+- Order: hard limits → per-category rule (WORKSPACE, SHELL, SSH, NETWORK, EXPORT, DEVICES, PUBLISH, UNUSUAL) shaped by the autonomy mode → grants → device conditions.
+- MANUAL turns everything except reads into ASK; BYPASS turns ASK into ALLOW except PUBLISH.
+- Approvals park the run in WAITING_USER. Approving creates a grant: ONCE (that resource, one use), RUN or HOUR. Rejecting tells the agent to find another way; "reject with a comment" tells it what to do instead.
+- **Root always asks, even in BYPASS**, and the approval covers that exact command once. Unusual or dangerous commands (`rm -rf`, `mkfs`, `dd` to a disk, `curl | sh`, reboot, touching `/system`, `~/.ssh` or other apps' data) also ask, with "allow for this session" (6 h).
+- WAIT_FOR_CONTEXT (battery or metered network) parks the run in WAITING_CAPABILITY and `:work` resumes it when the condition is met.
+- Config lives in Room (read by `:work`); the audit log rotates at 5 000 rows.
+- Configurable guardrails: "remove shell limits" and "reach the local network". "Free web" lets network tools run without asking in any mode.
+
+## Connections
+
+- SSH with sshj + full BouncyCastle registered at the lowest priority so it doesn't interfere with the Keystore. Ed25519 keys are generated on the phone and stored in the vault. Host keys are pinned by SHA256 fingerprint; first contact needs explicit confirmation and any change aborts.
+- Docker over SSH with the CLI (`docker ps --format json`, logs, start/stop/restart); container ids validated with a strict regex.
+- Plain HTTP is allowed by the platform config but restricted in code: `http://` only to loopback, private networks, ULA or 100.64/10 (Tailscale). Provider endpoints on the internet must be HTTPS.
+- Hosts refresh every 2 min with Quorvi on screen and every 15 min in the background; HTTP monitors every `refreshSec` (min 15 s). GitHub has its own backoff.
+- Monitors can be HTTP, HTTPS or TCP (`tcp://host:port`, measuring latency).
+- Home Assistant over REST plus a `state_changed` WebSocket while on screen; cards never change state optimistically.
+- GitLab shares the CI table with GitHub (`provider = gitlab`).
+- Discord only through official webhooks; posting always asks.
+- Saving to Drive without OAuth: `ACTION_CREATE_DOCUMENT` copies the exported file to the provider the user picks.
