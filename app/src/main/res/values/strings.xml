@@ -278,6 +278,17 @@
     <string name="policy_allow_run">For this run</string>
     <string name="policy_allow_hour">For 1 hour</string>
     <string name="policy_deny">Reject</string>
+    <string name="memory_title">Memory</string>
+    <string name="memory_hint">Agents read reviewed memories as context, with their source. Passwords, tokens, keys and codes are never stored.</string>
+    <string name="memory_add_hint">Something agents should remember</string>
+    <string name="memory_save">Remember</string>
+    <string name="memory_pending">Proposed by agents · review before they are used</string>
+    <string name="memory_saved">Saved (%1$d)</string>
+    <string name="memory_approve">Approve</string>
+    <string name="memory_pin">Pin</string>
+    <string name="memory_unpin">Unpin</string>
+    <string name="memory_forget">Forget</string>
+    <string name="memory_export">Export</string>
     <string name="policy_cat_devices">Control smart home devices</string>
     <string name="card_ha">Home</string>
     <string name="card_ha_empty">Star entities in Accounts → Services to see them here.</string>
