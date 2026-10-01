@@ -30,4 +30,37 @@ class ServicesTest {
         assertNull(HaParsing.toggleService("lock.puerta"))
         assertNull(HaParsing.toggleService("sensor.temp"))
     }
+
+    @Test
+    fun gitLabPipelinesMapOntoTheCiTable() {
+        val failed = GitLabClient.toEntity("group/app", GlPipeline(id = 77, iid = 12, status = "failed", ref = "main", sha = "abcdef123456", webUrl = "https://gitlab.com/group/app/-/pipelines/77"), 5)
+        assertEquals("gitlab:group/app:77", failed.id)
+        assertEquals("completed" to "failure", failed.status to failed.conclusion)
+        assertEquals("group/app" to 77L, GitLabClient.parseId(failed.id))
+        val running = GitLabClient.toEntity("group/sub/app", GlPipeline(id = 1, status = "running"), 5)
+        assertEquals("in_progress", running.status)
+        assertNull(running.conclusion)
+        assertEquals("group/sub/app" to 1L, GitLabClient.parseId(running.id))
+        assertNull(GitLabClient.parseId("github:a/b:1"))
+        assertEquals("test · unit", GitLabClient.toJob(failed.id, GlJob(id = 9, name = "unit", stage = "test", status = "failed")).name)
+    }
+
+    @Test
+    fun workerClientSpeaksTheProtocol() = runBlocking {
+        val server = MockWebServer().apply { start() }
+        server.enqueue(MockResponse.Builder().body("""{"run":{"id":"r1","idempotencyKey":"k","command":"make","state":"RUNNING","lastSequence":1},"existing":true}""").build())
+        server.enqueue(MockResponse.Builder().body("""{"events":[{"seq":2,"at":"2026-10-09T00:00:00Z","type":"stdout","data":"ok\n"}],"run":{"id":"r1","state":"COMPLETED","exitCode":0,"lastSequence":3}}""").build())
+        val client = WorkerClient(Http(OkHttpClient(), Json), server.url("/").toString(), "tok")
+        val (run, existing) = client.submit("k", "make", 60)
+        assertTrue(existing)
+        assertEquals("r1", run.id)
+        val (events, latest) = client.events("r1", 1, 1)
+        assertEquals("ok\n", events.single().data)
+        assertTrue(latest.terminal)
+        assertEquals("Bearer tok", server.takeRequest().headers["Authorization"])
+        val poll = server.takeRequest().url
+        assertEquals("/v1/runs/r1/events", poll.encodedPath)
+        assertEquals("1", poll.queryParameter("after"))
+        server.close()
+    }
 }
