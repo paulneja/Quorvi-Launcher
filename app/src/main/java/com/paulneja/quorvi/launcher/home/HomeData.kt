@@ -133,9 +133,9 @@ interface HomeDao {
         com.paulneja.quorvi.connections.services.ServiceEntity::class,
         com.paulneja.quorvi.connections.services.HaEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
-    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10)],
+    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10), androidx.room.AutoMigration(from = 10, to = 11, spec = QuorviDatabase.DropNotifications::class)],
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
@@ -153,6 +153,9 @@ abstract class QuorviDatabase : RoomDatabase() {
     abstract fun memory(): com.paulneja.quorvi.agent.memory.MemoryDao
 
     abstract fun services(): com.paulneja.quorvi.connections.services.ServicesDao
+
+    @androidx.room.DeleteTable(tableName = "notifications_redacted")
+    class DropNotifications : androidx.room.migration.AutoMigrationSpec
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
