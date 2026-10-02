@@ -102,3 +102,14 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - GitLab shares the CI table with GitHub (`provider = gitlab`).
 - Discord only through official webhooks; posting always asks.
 - Saving to Drive without OAuth: `ACTION_CREATE_DOCUMENT` copies the exported file to the provider the user picks.
+
+## Remote worker
+
+- Go, stdlib only, HTTP/JSON with long-polling (simpler through NAT and Tailscale than gRPC for v1).
+- Idempotency keys, append-only events with per-run sequences, one-time pairing codes; the worker stores only the token hash.
+- On the phone the key is `sha256(runId|stepId|command)` so a resumed step reattaches to the same remote run.
+
+## Memory
+
+- FTS4 (the system SQLite doesn't guarantee FTS5). Only reviewed memories are used; agent proposals stay pending. Memories are injected with their source and a staleness warning.
+- The chat coordinator gets pinned and relevant memories; with auto-memory on it saves what the user says about themselves (no secrets).
