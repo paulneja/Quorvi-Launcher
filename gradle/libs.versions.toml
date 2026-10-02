@@ -20,6 +20,7 @@ sshj = "0.41.1"
 bouncycastle = "1.86"
 mina-sshd = "2.20.0"
 slf4j = "2.0.20"
+shizuku = "13.1.5"
 termux = "v0.118.1"
 benchmark = "1.5.0"
 uiautomator = "2.4.0"
@@ -69,6 +70,8 @@ bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = 
 bouncycastle-pkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
 mina-sshd-core = { module = "org.apache.sshd:sshd-core", version.ref = "mina-sshd" }
 slf4j-nop = { module = "org.slf4j:slf4j-nop", version.ref = "slf4j" }
+shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
+shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
 termux-terminal-emulator = { module = "com.github.termux.termux-app:terminal-emulator", version.ref = "termux" }
 termux-terminal-view = { module = "com.github.termux.termux-app:terminal-view", version.ref = "termux" }
 miuix-blur = { module = "top.yukonga.miuix.kmp:miuix-blur-android", version.ref = "miuix" }

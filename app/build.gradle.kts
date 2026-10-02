@@ -105,6 +105,8 @@ dependencies {
     implementation(libs.sshj)
     implementation(libs.bouncycastle.prov)
     implementation(libs.bouncycastle.pkix)
+    implementation(libs.shizuku.api)
+    implementation(libs.shizuku.provider)
     implementation(libs.androidx.profileinstaller)
     baselineProfile(project(":benchmark"))
     implementation(libs.hilt.android)
