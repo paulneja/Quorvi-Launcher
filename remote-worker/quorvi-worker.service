@@ -1,0 +1,11 @@
+[Unit]
+Description=Quorvi remote worker
+After=network-online.target
+
+[Service]
+ExecStart=%h/.local/bin/quorvi-worker -listen 100.64.0.1:8790
+Restart=on-failure
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
