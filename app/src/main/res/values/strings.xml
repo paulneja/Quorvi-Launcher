@@ -655,6 +655,11 @@
     <string name="studio_unsuggested_none">Every app can be suggested. Hold an app and pick “Don\'t suggest”.</string>
     <string name="studio_resuggest">Suggest again</string>
     <string name="command_unsuggest">Don\'t suggest</string>
+    <string name="priv_ready">%1$s ready</string>
+    <string name="priv_denied_shizuku">Shizuku denied access. Allow Quorvi in the Shizuku app.</string>
+    <string name="priv_denied_root">Root denied. Allow Quorvi in your root manager (Magisk, KernelSU…).</string>
+    <string name="priv_shizuku_not_running">Shizuku isn\'t running. Open the Shizuku app and tap Start, then try again.</string>
+    <string name="priv_root_missing">This device has no root (su not found).</string>
     <string name="mod_agents">Agents and permissions</string>
     <string name="mod_agents_desc">What agents may do, autonomy and capsules</string>
     <string name="mod_github">GitHub and Ultra</string>
@@ -768,6 +773,7 @@
     <string name="bg_protection_hint">Only if Android still cuts long tasks: takes Quorvi out of Doze, lets it run without background limits and, with root, makes the system close it last. Turning it off reverts it.</string>
     <string name="bg_protection_on">Protection on with %1$s</string>
     <string name="bg_protection_off">Protection off (%1$s)</string>
+    <string name="bg_needs_priv">First turn on Shizuku or root under "Privileged shells", below.</string>
     <string name="models_choose_short">Models</string>
     <string name="fb_title">Full backup (encrypted)</string>
     <string name="engine_no_model">No model is set up. Add a provider in Settings → AI and try again.</string>
