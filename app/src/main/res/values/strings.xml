@@ -309,6 +309,9 @@
     <string name="services_add_discord">Connect a Discord channel</string>
     <string name="services_add_discord_hint">Through an official channel webhook; agents always ask before posting</string>
     <string name="services_discord_confirm">Type the channel name again to confirm</string>
+    <string name="screen_control_title">Quorvi screen control</string>
+    <string name="screen_control_summary">Lets Nexo agents read and act on the screen when you ask them to.</string>
+    <string name="screen_control_desc">Optional. When enabled, agents can read the current screen and tap, type and scroll to carry out a task. A touch from you pauses the agent. Nexo never types into password fields.</string>
     <string name="policy_cat_screen">Control the screen (accessibility)</string>
     <string name="policy_cat_privileged">Privileged shell (root / Shizuku / ADB)</string>
     <string name="policy_power">Power options (for you, not agents by default)</string>
