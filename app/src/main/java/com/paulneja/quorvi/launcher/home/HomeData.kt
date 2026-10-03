@@ -132,10 +132,11 @@ interface HomeDao {
         com.paulneja.quorvi.agent.memory.MemoryFts::class,
         com.paulneja.quorvi.connections.services.ServiceEntity::class,
         com.paulneja.quorvi.connections.services.HaEntity::class,
+        com.paulneja.quorvi.agent.capsules.CapsuleEntity::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
-    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10), androidx.room.AutoMigration(from = 10, to = 11, spec = QuorviDatabase.DropNotifications::class)],
+    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10), androidx.room.AutoMigration(from = 10, to = 11, spec = QuorviDatabase.DropNotifications::class), androidx.room.AutoMigration(from = 11, to = 12)],
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
@@ -153,6 +154,8 @@ abstract class QuorviDatabase : RoomDatabase() {
     abstract fun memory(): com.paulneja.quorvi.agent.memory.MemoryDao
 
     abstract fun services(): com.paulneja.quorvi.connections.services.ServicesDao
+
+    abstract fun capsules(): com.paulneja.quorvi.agent.capsules.CapsuleDao
 
     @androidx.room.DeleteTable(tableName = "notifications_redacted")
     class DropNotifications : androidx.room.migration.AutoMigrationSpec
