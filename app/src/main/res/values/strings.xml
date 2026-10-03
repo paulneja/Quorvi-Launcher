@@ -778,6 +778,12 @@
     <string name="capsule_started">Running “%1$s”</string>
     <string name="capsule_not_started">Could not start “%1$s”</string>
     <string name="blk_capsules_launcher">Capsule launcher</string>
+    <string name="trigger_reason_charging">Automatic: charger connected</string>
+    <string name="trigger_reason_wifi">Automatic: connected to Wi‑Fi</string>
+    <string name="trigger_reason_ci">Automatic: a CI failed in %1$s</string>
+    <string name="trigger_reason_notification">Automatic: a notification arrived</string>
+    <string name="trigger_reason_boot">Automatic: the phone started</string>
+    <string name="trigger_reason_timer">Automatic: scheduled</string>
     <string name="command_capsule">Capsule · tap to launch</string>
     <string name="bg_title">Background</string>
     <string name="bg_battery">Battery optimization</string>
