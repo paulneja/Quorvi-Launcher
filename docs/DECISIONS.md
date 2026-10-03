@@ -113,3 +113,9 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 
 - FTS4 (the system SQLite doesn't guarantee FTS5). Only reviewed memories are used; agent proposals stay pending. Memories are injected with their source and a staleness warning.
 - The chat coordinator gets pinned and relevant memories; with auto-memory on it saves what the user says about themselves (no secrets).
+
+## Screen control and privileges
+
+- Optional accessibility service in `:work`: semantic actions, tree reading with password fields hidden, and arbitration (a user touch preempts the agent). `android.act` rereads after acting.
+- Optional privileged shells: root (`su`), Shizuku (direct API; only `newProcess` via reflection) and ADB over TCP. Each is enabled separately and verified when enabled and on every use; a backend that stops answering is marked degraded in memory instead of being switched off.
+- Root levels read < control < exec < modify < experimental with a user-set ceiling; MODIFY uses `su --mount-master`.
