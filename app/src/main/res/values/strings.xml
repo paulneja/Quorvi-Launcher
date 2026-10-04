@@ -495,6 +495,8 @@
     <string name="blk_system">System</string>
     <string name="blk_timer">Timer</string>
     <string name="blk_timer_running">Ends %s · in Clock</string>
+    <string name="blk_capsules_empty">No capsules yet</string>
+    <string name="blk_capsules_new">Create</string>
     <string name="blk_contacts_access">Allow contacts to see your favorites.</string>
     <string name="blk_contacts_empty">Star contacts to see them here.</string>
     <string name="blk_note_hint">Write something…</string>
@@ -507,6 +509,7 @@
     <string name="weather_attribution">Weather: Open-Meteo (CC BY 4.0)</string>
     <string name="blk_media">Music</string>
     <string name="blk_photos">Photos</string>
+    <string name="blk_capsules">Capsules</string>
     <string name="blk_contacts">Favorites</string>
     <string name="blk_hosts">Servers</string>
     <string name="blk_http">HTTP widgets</string>
@@ -788,6 +791,9 @@
     </plurals>
     <string name="capsule_started">Running “%1$s”</string>
     <string name="capsule_not_started">Could not start “%1$s”</string>
+    <string name="capsule_running">Running…</string>
+    <string name="capsule_never">Never run</string>
+    <string name="capsule_new_ai">New with AI</string>
     <string name="blk_capsules_launcher">Capsule launcher</string>
     <string name="trigger_reason_charging">Automatic: charger connected</string>
     <string name="trigger_reason_wifi">Automatic: connected to Wi‑Fi</string>
