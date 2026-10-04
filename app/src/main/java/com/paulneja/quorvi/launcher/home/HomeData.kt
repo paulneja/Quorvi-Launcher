@@ -57,6 +57,13 @@ data class HomeItemEntity(
     val backdrop: Boolean get() = type == ItemType.NEXO_CARD && title == GLASS_KIND
 }
 
+@Entity(tableName = "home_pages")
+data class HomePageEntity(
+    @PrimaryKey val page: Int,
+    val template: String,
+    val title: String? = null,
+)
+
 @Dao
 interface HomeDao {
     @Query("SELECT * FROM home_items ORDER BY container, page, cellY, cellX, rank")
@@ -111,6 +118,7 @@ interface HomeDao {
 @Database(
     entities = [
         HomeItemEntity::class,
+        HomePageEntity::class,
         com.paulneja.quorvi.core.command.CommandUsage::class,
         com.paulneja.quorvi.core.command.CommandQuery::class,
         com.paulneja.quorvi.ops.RunEntity::class,
@@ -134,9 +142,9 @@ interface HomeDao {
         com.paulneja.quorvi.connections.services.HaEntity::class,
         com.paulneja.quorvi.agent.capsules.CapsuleEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
-    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10), androidx.room.AutoMigration(from = 10, to = 11, spec = QuorviDatabase.DropNotifications::class), androidx.room.AutoMigration(from = 11, to = 12)],
+    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10), androidx.room.AutoMigration(from = 10, to = 11, spec = QuorviDatabase.DropNotifications::class), androidx.room.AutoMigration(from = 11, to = 12), androidx.room.AutoMigration(from = 12, to = 13)],
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
