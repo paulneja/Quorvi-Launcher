@@ -68,4 +68,46 @@ class CapsuleTest {
         ok as CompileResult.Ok
         assertTrue(ok.warnings.single().contains("extra"))
     }
+
+    @Test
+    fun jsonRoundTrips() {
+        val c = Capsule(name = "Deploy", steps = listOf(CapsuleStep("shell.exec", mapOf("argv" to buildJsonArray { add("make") }))))
+        val text = compiler().encode(c)
+        assertEquals(c, (compiler().parse(text) as CompileResult.Ok).capsule)
+    }
+
+    private fun engine() = AgentEngine(db.ops(), ModelSource { null }, FakeToolBox(workspace, db.ops()), scope, PolicyService(policyStore, device), EngineLimits())
+
+    private fun await(id: String, vararg s: RunState) = runBlocking {
+        withTimeout(30_000) { while (true) { val r = db.ops().run(id); if (r != null && RunState.valueOf(r.state) in s) return@withTimeout r; delay(20) }; @Suppress("UNREACHABLE_CODE") error("x") }
+    }
+
+    @Test
+    fun capsuleRunsEachStepThroughThePolicy() = runBlocking {
+        val id = engine().submitCapsule("c1", "Prepare", listOf(
+            "fs.write" to json("path" to "notes.md", "content" to "hello"),
+            "shell.exec" to json("argv" to listOf("echo", "done")),
+        ))
+        val run = await(id, RunState.COMPLETED, RunState.FAILED)
+        assertEquals(RunState.COMPLETED.name, run.state)
+        assertEquals("hello", workspace.files["runs/$id/notes.md"])
+        assertEquals(listOf(listOf("echo", "done")), workspace.commands)
+        assertTrue(db.ops().steps(id).all { it.state == "SUCCEEDED" })
+    }
+
+    @Test
+    fun capsulePublishStepWaitsForApprovalThenResumes() = runBlocking {
+        val engine = engine()
+        val id = engine.submitCapsule("c2", "Publish", listOf(
+            "fs.write" to json("path" to "a.txt", "content" to "x"),
+            "shell.exec" to json("argv" to listOf("git", "push")),
+        ))
+        await(id, RunState.WAITING_USER)
+        assertTrue(workspace.commands.none { it.contains("push") })
+        val approval = policyStore.approvals.single()
+        policyStore.grants += GrantEntity("g", id, approval.action, approval.resource, 0, usesLeft = 1)
+        engine.resume(id)
+        assertEquals(RunState.COMPLETED.name, await(id, RunState.COMPLETED, RunState.FAILED).state)
+        assertEquals(listOf(listOf("git", "push")), workspace.commands)
+    }
 }
