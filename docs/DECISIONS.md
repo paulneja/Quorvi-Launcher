@@ -119,3 +119,22 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - Optional accessibility service in `:work`: semantic actions, tree reading with password fields hidden, and arbitration (a user touch preempts the agent). `android.act` rereads after acting.
 - Optional privileged shells: root (`su`), Shizuku (direct API; only `newProcess` via reflection) and ADB over TCP. Each is enabled separately and verified when enabled and on every use; a backend that stops answering is marked degraded in memory instead of being switched off.
 - Root levels read < control < exec < modify < experimental with a user-set ceiling; MODIFY uses `su --mount-master`.
+
+## UI
+
+- Calm default home: a large frameless clock and thumb-reachable tiles (AI agent, GitHub, Data, System) that grow into their panels.
+- Pages switch with the top pill or by swiping; the bottom panel bar is optional.
+- Real liquid glass refraction (rounded lens with chromatic dispersion and a specular rim) on top of the wallpaper; falls back to tint + grain + rim without a wallpaper bitmap.
+- Surface styles: Glass, Material You (dynamic palette) or Material 3 (palette from the accent).
+- Geist and Geist Mono (SIL OFL 1.1). Never weight 700.
+- All visual customization lives in one serialized `Look` object; unknown keys are ignored, so new options need no migration.
+- Start presets: Clean, Full, From scratch and Minimal; applying one backs up the previous layout.
+- Settings is one screen with nine modules and live summaries; every shortcut opens the matching module.
+- One long-press menu on the home (edit, widgets, glass space, wallpaper, settings).
+- The ○ button returns to the page you were on; pressing it on home goes to the first page.
+- Edit mode only selects; Android widgets resize freely from 1×1.
+- Glass spaces are a backdrop layer: they only collide with each other, so apps and widgets sit on top.
+- "Don't suggest" removes an app from suggestions without hiding it.
+- Weather from Open-Meteo (no key, CC BY 4.0) with coarse location or a city.
+- App import from Launcher3/Quickstep/Lawnchair `favorites` tables (root copy or file).
+- English is the default language with a complete Spanish translation.
