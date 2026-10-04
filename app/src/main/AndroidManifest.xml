@@ -137,6 +137,12 @@
             android:label="@string/menu_studio" />
 
         <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings_title"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".labs.LabActivity"
             android:exported="false"
             android:label="@string/labs_title" />
