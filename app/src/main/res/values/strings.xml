@@ -820,6 +820,7 @@
     <string name="clock_color_accent">Accent</string>
     <string name="clock_color_custom">Pick</string>
     <string name="clock_shadow">Soft shadow behind the clock</string>
+    <string name="ultra_offer_asked">You asked to move to Ultra.</string>
     <string name="monitor_type">Type</string>
     <string name="monitor_https_hint">A secure web page or API. The usual choice for services on the internet.</string>
     <string name="monitor_http_hint">Unencrypted: only for devices on your network (router, NAS, local Home Assistant).</string>
@@ -850,6 +851,7 @@
     <string name="policy_deny_comment">Reject with a comment</string>
     <string name="policy_deny_comment_hint">What should it do instead?</string>
     <string name="policy_deny_send">Send</string>
+    <string name="plan_approved_message">Plan approved. Carry it out.</string>
     <string name="agents_free_web">Free web access</string>
     <string name="agents_free_web_desc">Agents search and open any page without asking, including addresses on your network</string>
     <string name="blk_gh_pending">GitHub pending</string>
