@@ -141,10 +141,13 @@ interface HomeDao {
         com.paulneja.quorvi.connections.services.ServiceEntity::class,
         com.paulneja.quorvi.connections.services.HaEntity::class,
         com.paulneja.quorvi.agent.capsules.CapsuleEntity::class,
+        com.paulneja.quorvi.agent.chat.ChatEntity::class,
+        com.paulneja.quorvi.agent.chat.ChatMessageEntity::class,
+        com.paulneja.quorvi.agent.orchestra.AgentConfigEntity::class,
     ],
-    version = 13,
+    version = 14,
     exportSchema = true,
-    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10), androidx.room.AutoMigration(from = 10, to = 11, spec = QuorviDatabase.DropNotifications::class), androidx.room.AutoMigration(from = 11, to = 12), androidx.room.AutoMigration(from = 12, to = 13)],
+    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10), androidx.room.AutoMigration(from = 10, to = 11, spec = QuorviDatabase.DropNotifications::class), androidx.room.AutoMigration(from = 11, to = 12), androidx.room.AutoMigration(from = 12, to = 13), androidx.room.AutoMigration(from = 13, to = 14)],
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
@@ -164,6 +167,10 @@ abstract class QuorviDatabase : RoomDatabase() {
     abstract fun services(): com.paulneja.quorvi.connections.services.ServicesDao
 
     abstract fun capsules(): com.paulneja.quorvi.agent.capsules.CapsuleDao
+
+    abstract fun chats(): com.paulneja.quorvi.agent.chat.ChatDao
+
+    abstract fun agentConfig(): com.paulneja.quorvi.agent.orchestra.AgentConfigDao
 
     @androidx.room.DeleteTable(tableName = "notifications_redacted")
     class DropNotifications : androidx.room.migration.AutoMigrationSpec
