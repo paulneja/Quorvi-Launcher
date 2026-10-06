@@ -145,9 +145,9 @@ interface HomeDao {
         com.paulneja.quorvi.agent.chat.ChatMessageEntity::class,
         com.paulneja.quorvi.agent.orchestra.AgentConfigEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
-    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10), androidx.room.AutoMigration(from = 10, to = 11, spec = QuorviDatabase.DropNotifications::class), androidx.room.AutoMigration(from = 11, to = 12), androidx.room.AutoMigration(from = 12, to = 13), androidx.room.AutoMigration(from = 13, to = 14)],
+    autoMigrations = [androidx.room.AutoMigration(from = 3, to = 4), androidx.room.AutoMigration(from = 4, to = 5), androidx.room.AutoMigration(from = 5, to = 6), androidx.room.AutoMigration(from = 6, to = 7), androidx.room.AutoMigration(from = 7, to = 8), androidx.room.AutoMigration(from = 8, to = 9), androidx.room.AutoMigration(from = 9, to = 10), androidx.room.AutoMigration(from = 10, to = 11, spec = QuorviDatabase.DropNotifications::class), androidx.room.AutoMigration(from = 11, to = 12), androidx.room.AutoMigration(from = 12, to = 13), androidx.room.AutoMigration(from = 13, to = 14), androidx.room.AutoMigration(from = 14, to = 15)],
 )
 abstract class QuorviDatabase : RoomDatabase() {
     abstract fun home(): HomeDao
