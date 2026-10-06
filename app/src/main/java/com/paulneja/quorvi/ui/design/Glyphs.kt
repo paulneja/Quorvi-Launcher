@@ -110,4 +110,5 @@ object Glyphs {
     val Pen = glyph("pen", "M4 20l4-1L19 8l-3-3L5 16z", "M14 7l3 3")
     val Image = glyph("image", "M4 5h16v14H4z", "M4 16l5-5 4 4 3-3 4 4", "M15.5 8.5h.01")
     val File = glyph("file", "M6 3h8l4 4v14H6z", "M14 3v4h4")
+    val Pin = glyph("pin", "M9 4h6l-1 5l3 3H7l3-3z", "M12 12v8")
 }
