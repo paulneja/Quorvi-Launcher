@@ -174,4 +174,125 @@ class ChatEngineTest {
         assertTrue(model.requests[1].messages.last().text.contains("Tools a capsule can use"))
         assertTrue(runBlocking { db.capsules().observe().first() }.isEmpty())
     }
+
+    @Test
+    fun anAiCapsuleIsInstructionsTheAgentCarriesOutEachTime() {
+        val model = ScriptedModel(listOf(
+            call("capsule_propose", "name" to "Resumen de PRs", "description" to "Lo que espera mi revisión", "instructions" to "Revisá mis PRs pendientes en GitHub y resumime cuáles necesitan mi atención."),
+            Turn.Text("Listo."),
+        ))
+        val id = submit(engine(model), "haceme una cápsula que me resuma los PR")
+        await(id, RunState.COMPLETED)
+        val draft = Json.decodeFromString(com.paulneja.quorvi.agent.capsules.Capsule.serializer(), messages(ChatRole.CAPSULE).single().text)
+        assertTrue(draft.ai)
+        assertTrue(draft.steps.isEmpty())
+        assertTrue(draft.prompt.startsWith("Revisá mis PRs"))
+    }
+
+    @Test
+    fun theAiCanScheduleTheCapsuleItProposes() {
+        val model = ScriptedModel(listOf(
+            call("capsule_propose", "name" to "Buen día", "description" to "Resumen matinal", "instructions" to "Contame el clima y mi agenda.", "when" to "daily", "at" to "08:30", "days" to "2,3,4,5,6"),
+            Turn.Text("Listo."),
+        ))
+        val id = submit(engine(model), "todas las mañanas de semana a las 8:30 resumime el día")
+        await(id, RunState.COMPLETED)
+        val trigger = Json.decodeFromString(com.paulneja.quorvi.agent.capsules.Capsule.serializer(), messages(ChatRole.CAPSULE).single().text).trigger
+        assertEquals("daily", trigger.kind)
+        assertEquals(8, trigger.hour)
+        assertEquals(30, trigger.minute)
+        assertEquals(listOf(2, 3, 4, 5, 6), trigger.days)
+    }
+
+    @Test
+    fun theAiIsNeverGivenAToolToSubmitOrApproveAPullRequest() {
+        runBlocking { db.chats().setMode(chatId, com.paulneja.quorvi.agent.chat.ChatMode.ULTRA) }
+        val model = ScriptedModel(listOf(Turn.Text("ok")))
+        val id = submit(engine(model), "hola")
+        await(id, RunState.COMPLETED)
+        val names = model.requests.single().tools.map { it.name.lowercase() }
+        assertTrue(names.none { n -> listOf("submit", "approve", "merge", "push").any { it in n } })
+    }
+
+    private fun await(id: String, vararg states: RunState) = runBlocking {
+        withTimeout(10_000) {
+            while (true) {
+                val run = db.ops().run(id)
+                if (run != null && RunState.valueOf(run.state) in states) return@withTimeout run
+                delay(20)
+            }
+            @Suppress("UNREACHABLE_CODE") error("unreachable")
+        }
+    }
+
+    private fun assistant() = runBlocking { db.chats().messages(chatId).filter { it.role == ChatRole.ASSISTANT } }
+
+    @Test
+    fun aSimpleQuestionIsAnsweredInTheChatWithTheWholeHistory() {
+        val model = ScriptedModel(listOf(Turn.Text("¡Hola! ¿Qué necesitás?")))
+        val id = submit(engine(model), "hola")
+        await(id, RunState.COMPLETED)
+        val reply = assistant().single()
+        assertEquals("¡Hola! ¿Qué necesitás?", reply.text)
+        assertEquals(ChatStatus.DONE, reply.status)
+        assertEquals(id, reply.runId)
+        assertEquals("hola", model.requests.single().messages.last().text)
+    }
+
+    @Test
+    fun theCoordinatorDelegatesOnlyToAConfiguredSpecialistWithItsOwnModel() {
+        val thinker = ScriptedModel(listOf(Turn.Text("Conviene la opción B por costo.")))
+        val coordinator = ScriptedModel(listOf(call("delegate", "role" to "THINK", "task" to "¿A o B?"), Turn.Text("Te recomiendo B.")))
+        val orchestra = Orchestra(enabled = true, active = setOf(Specialist.THINK), specialists = mapOf(Specialist.THINK to ModelBinding(ModelRef("p", "deep-1"))))
+        val id = submit(engine(coordinator, orchestra, mapOf("deep-1" to thinker)), "¿A o B?")
+        await(id, RunState.COMPLETED)
+        assertEquals("deep-1", thinker.requests.single().model)
+        val step = runBlocking { db.ops().steps(id) }.single { it.kind == "delegate:THINK" }
+        assertEquals("SUCCEEDED", step.state)
+        assertTrue(coordinator.requests[1].messages.any { it.text.contains("opción B") })
+        assertEquals("Te recomiendo B.", assistant().single().text)
+    }
+
+    @Test
+    fun aModelFailureClosesTheAnswerWithAReadableError() {
+        val broken = object : com.paulneja.quorvi.agent.models.AiClient {
+            override fun stream(request: com.paulneja.quorvi.agent.models.AiRequest) = kotlinx.coroutines.flow.flow<com.paulneja.quorvi.agent.models.AiEvent> {
+                throw com.paulneja.quorvi.core.net.NetException(com.paulneja.quorvi.core.net.NetFailure.OFFLINE)
+            }
+            override suspend fun listModels() = emptyList<com.paulneja.quorvi.agent.models.AiModelInfo>()
+        }
+        val models = ModelSource { ModelChoice("fake", "m", broken) }
+        val log = RoomChatLog(ApplicationProvider.getApplicationContext(), db.chats(), db.ops())
+        val engine = AgentEngine(db.ops(), models, FakeToolBox(workspace, db.ops()), scope, com.paulneja.quorvi.agent.policy.PolicyService(MemoryPolicyStore(), FakeDevice()), EngineLimits(modelTimeoutMs = 5_000), chats = log)
+        val id = submit(engine, "hola")
+        await(id, RunState.FAILED)
+        val reply = assistant().single()
+        assertEquals(ChatStatus.ERROR, reply.status)
+        assertTrue(reply.text.contains("Couldn't reach the model"))
+    }
+
+    @Test
+    fun aSpecialistWithoutAChosenModelIsNeverOffered() {
+        val coordinator = ScriptedModel(listOf(Turn.Text("ok")))
+        val orchestra = Orchestra(enabled = true, active = setOf(Specialist.THINK, Specialist.IMAGE))
+        val id = submit(engine(coordinator, orchestra), "hola")
+        await(id, RunState.COMPLETED)
+        assertFalse(coordinator.requests.single().tools.any { it.name == "delegate" })
+    }
+
+    @Test
+    fun aQuestionPausesTheTurnAndTheNextMessageAnswersIt() {
+        val coordinator = ScriptedModel(listOf(call("ask_user", "question" to "¿Para qué ciudad?"), Turn.Text("En Córdoba hace 20 °C.")))
+        val engine = engine(coordinator)
+        val id = submit(engine, "¿Qué clima hace?")
+        await(id, RunState.WAITING_USER)
+        assertEquals("¿Para qué ciudad?", assistant().single().text)
+        say("Córdoba")
+        engine.answer(id, "Córdoba")
+        await(id, RunState.COMPLETED)
+        assertEquals("En Córdoba hace 20 °C.", assistant().last().text)
+        val history = coordinator.requests.last().messages.map { it.text }
+        assertTrue(history.contains("Córdoba"))
+        assertEquals(1, history.count { it == "Córdoba" })
+    }
 }
