@@ -639,6 +639,8 @@
     <string name="style_material3">Material 3</string>
     <string name="style_material_you_hint">Solid surfaces with the colors Android takes from your wallpaper.</string>
     <string name="style_material3_hint">Solid surfaces with Quorvi\'s accent color, no transparency.</string>
+    <string name="chat_copied">Copied</string>
+    <string name="chat_copy">Copy</string>
     <string name="mem_title">Memory</string>
     <string name="orc_title">Orchestra</string>
     <string name="agent_open_chat">Open chat</string>
