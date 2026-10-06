@@ -100,6 +100,8 @@ object Glyphs {
     val Check = glyph("check", "M5 12.5l4.5 4.5L19 7.5")
     val Menu = glyph("menu", "M4 7h16", "M4 12h10", "M4 17h16")
     val Compose = glyph("compose", "M12 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6", "M17.5 3.5l3 3L12 15l-4 1l1-4z")
+    val Copy = glyph("copy", "M9 9h11v11H9z", "M5 15H4V4h11v1")
+    val Share = glyph("share", "M12 3v12", "M7.5 7.5L12 3l4.5 4.5", "M5 13v7h14v-7")
     val Retry = glyph("retry", "M4 12a8 8 0 1 0 2.5-5.8", "M4 4v4h4")
     val Brain = glyph("brain", "M9 4a3 3 0 0 0-3 3a3 3 0 0 0-2 5a3 3 0 0 0 2 5a3 3 0 0 0 6 1V6a2 2 0 0 0-3-2z", "M15 4a3 3 0 0 1 3 3a3 3 0 0 1 2 5a3 3 0 0 1-2 5a3 3 0 0 1-6 1")
     val Sparkle = glyph("sparkle", "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z", "M19 16l.7 1.8l1.8.7l-1.8.7L19 21l-.7-1.8l-1.8-.7l1.8-.7z")
