@@ -87,6 +87,7 @@ object Glyphs {
     val Note = glyph("note", "M5 4h14v16H5z", "M8.5 9h7M8.5 13h7M8.5 17h4")
     val Timer = glyph("timer", "M12 7a7 7 0 1 0 0 14a7 7 0 1 0 0-14z", "M12 11v3.5M9.5 3h5M18.5 6.5l1.5-1.5")
     val Photo = glyph("photo", "M4 5h16v14H4z", "M4 16l5-5 4 4 3-3 4 4", "M15.5 9h.01")
+    val Message = glyph("message", "M4 18.5l1.4-3.6A7.5 7.5 0 1 1 9 18.4z")
     val Server = glyph("server", "M4 4h16v6H4z", "M4 14h16v6H4z", "M8 7h.01M8 17h.01")
     val House = glyph("house", "M4 11l8-7 8 7v9H4z", "M10 20v-5h4v5")
     val Sun = glyph("sun", "M12 7.5a4.5 4.5 0 1 0 0 9a4.5 4.5 0 1 0 0-9z", "M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4")
