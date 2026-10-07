@@ -652,6 +652,7 @@
     <string name="act_web_search">Searching the web</string>
     <string name="chat_attach_files">Files</string>
     <string name="chat_attach_photos">Photos</string>
+    <string name="chat_cancel">Cancel</string>
     <string name="chat_close">Close</string>
     <string name="chat_copied">Copied</string>
     <string name="chat_copy">Copy</string>
@@ -716,6 +717,7 @@
     <string name="orc_coordinator">Main model</string>
     <string name="orc_coordinator_desc">The one that talks to you and decides.</string>
     <string name="orc_default_model">Automatic: uses the first provider in the list.</string>
+    <string name="orc_effort">Reasoning</string>
     <string name="orc_effort_auto">Auto</string>
     <string name="orc_effort_high">High</string>
     <string name="orc_effort_low">Low</string>
@@ -1185,6 +1187,13 @@
     <string name="voice_title">Voice assistant</string>
     <string name="voice_nav_desc">Hold home or power to talk to Nexo</string>
     <string name="models_title">Models</string>
+    <string name="models_intro">Choose which model Nexo uses for each thing. You can add several: if the first one fails or doesn\'t answer, Nexo moves on to the next.</string>
+    <string name="models_chat">Chat</string>
+    <string name="models_specialists_desc">Hand focused work (thinking, planning, code, images…) to the models you choose below.</string>
+    <string name="models_primary">Main</string>
+    <string name="models_backup">Backup %d</string>
+    <string name="models_choose">+ Choose model</string>
+    <string name="models_add">+ Add model</string>
     <string name="models_choose_short">Models</string>
     <string name="models_nav_auto">Automatic: the first provider</string>
     <string name="voice_nav_off">Off</string>
