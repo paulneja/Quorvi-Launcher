@@ -60,4 +60,69 @@ class UltraTest {
         assertNull(CommitPolicy.blockedCommand("./gradlew test && git status && git diff"))
         assertNull(CommitPolicy.blockedCommand("git log --oneline -5"))
     }
+
+    @Test
+    fun styleAndBranchFollowTheOwnersSettings() {
+        assertTrue(CommitPolicy.styleRule(UltraConfig()).contains("Conventional"))
+        assertTrue(CommitPolicy.styleRule(UltraConfig(commitStyle = CommitStyle.CUSTOM, customStyle = "emoji first")).contains("emoji first"))
+        val branch = UltraPullRequests.branchName("nexo/", "Arreglá el login roto!")
+        assertTrue(branch, branch.matches(Regex("nexo/arregl-el-login-roto-[a-z0-9]{1,5}")))
+        assertTrue(UltraPullRequests.branchName("", "x").startsWith("x-"))
+        val draft = PrDraft("o/r", "main", "abc", "t", "b", "m", listOf(PrFile("a.kt", "x"), PrFile("gone.kt", null)))
+        assertEquals(draft, PrDraft.decode(draft.encode()))
+    }
+
+    @Test
+    fun reasoningIsOfferedOnlyWhereTheProviderHonoursIt() {
+        assertEquals(ReasoningSupport(effort = true, thinking = true), ReasoningSupport.of(ProviderKind.ANTHROPIC, "claude-sonnet-5"))
+        assertFalse(ReasoningSupport.of(ProviderKind.ANTHROPIC, "claude-3-5-haiku").thinking)
+        assertEquals(ReasoningSupport(effort = true, thinking = false), ReasoningSupport.of(ProviderKind.OPENAI_RESPONSES, "gpt-5"))
+        assertEquals(ReasoningSupport.NONE, ReasoningSupport.of(ProviderKind.BRIDGE, "claude-sonnet-5.5"))
+    }
+
+    private class FakeHttp(private val events: List<String>) : Http(OkHttpClient(), Json { ignoreUnknownKeys = true }) {
+        var body: JsonElement? = null
+        override fun stream(url: String, body: JsonElement, headers: Map<String, String>): Flow<SseEvent> {
+            this.body = body
+            return flowOf(*events.map { SseEvent(null, it) }.toTypedArray())
+        }
+    }
+
+    @Test
+    fun anthropicStreamsTextToolsAndKeepsThinkingForTheNextTurn() = runBlocking {
+        val http = FakeHttp(
+            listOf(
+                """{"type":"message_start","message":{"usage":{"input_tokens":12}}}""",
+                """{"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}""",
+                """{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Let me check"}}""",
+                """{"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig1"}}""",
+                """{"type":"content_block_start","index":1,"content_block":{"type":"text","text":""}}""",
+                """{"type":"content_block_delta","index":1,"delta":{"type":"text_delta","text":"Voy a leer"}}""",
+                """{"type":"content_block_start","index":2,"content_block":{"type":"tool_use","id":"toolu_1","name":"ws_read"}}""",
+                """{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"{\"path\":"}}""",
+                """{"type":"content_block_delta","index":2,"delta":{"type":"input_json_delta","partial_json":"\"README.md\"}"}}""",
+                """{"type":"message_delta","usage":{"output_tokens":40}}""",
+            ),
+        )
+        val client = AnthropicClient(http, AnthropicClient.DEFAULT_URL, "key")
+        val request = AiRequest("claude-sonnet-5", "sys", listOf(AiMessage.user("hola")), listOf(AiToolSpec("ws_read", "read", JsonObject(emptyMap()))), reasoning = ReasoningConfig(ReasoningEffort.MEDIUM, thinking = true))
+        val events = client.stream(request).toList()
+        assertEquals("Voy a leer", events.filterIsInstance<AiEvent.TextDelta>().joinToString("") { it.text })
+        val call = events.filterIsInstance<AiEvent.ToolCalls>().single().calls.single()
+        assertEquals("README.md", call.arguments["path"]?.jsonPrimitive?.content)
+        val done = events.filterIsInstance<AiEvent.Done>().single()
+        assertEquals(40L, done.usage?.outputTokens)
+        val sent = http.body!!.jsonObject
+        assertEquals("enabled", sent["thinking"]!!.jsonObject["type"]!!.jsonPrimitive.content)
+        assertNull(sent["temperature"])
+
+        val next = AiRequest("claude-sonnet-5", null, listOf(AiMessage.user("hola"), AiMessage.assistant("Voy a leer", listOf(call), done.signature), AiMessage.tool("toolu_1", "# Readme")))
+        client.stream(next).toList()
+        val messages = http.body!!.jsonObject["messages"]!!.jsonArray
+        val assistant = messages[1].jsonObject["content"]!!.jsonArray
+        assertEquals("thinking", assistant[0].jsonObject["type"]!!.jsonPrimitive.content)
+        assertEquals("sig1", assistant[0].jsonObject["signature"]!!.jsonPrimitive.content)
+        assertEquals("tool_use", assistant.last().jsonObject["type"]!!.jsonPrimitive.content)
+        assertEquals("tool_result", messages[2].jsonObject["content"]!!.jsonArray[0].jsonObject["type"]!!.jsonPrimitive.content)
+    }
 }
