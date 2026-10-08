@@ -138,3 +138,23 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - Weather from Open-Meteo (no key, CC BY 4.0) with coarse location or a city.
 - App import from Launcher3/Quickstep/Lawnchair `favorites` tables (root copy or file).
 - English is the default language with a complete Spanish translation.
+
+## Chat and Ultra
+
+- Each message is a full agent turn: `Conversation` runs with the chat history, every tool, policies and streaming. Chats live in Room.
+- Two modes: **Chat** and **Ultra** (repository and heavy work). A chat can offer to move to Ultra; the move is one way. Ultra has no step limit.
+- Ultra workspace: `ultra/<chat>/repo` in the runtime. `repo_clone` passes the token in a one-off header so it never lands in `.git/config`. The agent can't commit, push, merge, rebase, reset hard, write through `gh` or change git identity.
+- **Pull requests only exist when the user asks** ("PR", "pull request" or `/pr`). The draft lists created/modified/deleted files with per-file diffs; the user can edit title, body and commit message, leave files out or rewrite a file before approving. Quorvi then creates the tree, an author-less commit (so the user is the only author), the branch and the PR.
+- **Authorship rule:** `Co-authored-by`, `Signed-off-by` for anyone not explicitly allowed, and AI attribution lines are rejected, both when the model proposes and right before sending.
+- Configurable commit style, language, branch prefix, draft PRs and allowed co-authors.
+- Orchestra (optional): a coordinator delegates to specialists (think, plan, research, code, write, image, review), each with its own model chain and fallbacks. Models are chosen in one place, Settings → AI → Models, as ordered lists per use.
+- Modes and mentions: `@meta` works until `finish(done|blocked)`; `@investigar` researches several sources and questions the first findings; `/plan` in Ultra plans with read-only tools and hands over a plan to approve or revise.
+- Reasoning effort and extended thinking where the provider supports them; an Anthropic provider (Messages API) alongside OpenAI-compatible and Responses providers.
+- GitHub tools in chat and Ultra: profile, repos (private too), files, commits, issues, PRs, Actions, search and notifications. Commenting and creating issues always ask.
+- Deleting a chat deletes its runs.
+
+## Capsules
+
+- Capsules are mainly saved AI instructions that run in their own chat; fixed-step JSON capsules remain an advanced option, compiled against the real tools before saving or running.
+- Triggers: manual, every N minutes (min 15), daily at a time on chosen days, on charging, on joining a Wi-Fi network, on a notification from an app, on a failed CI run and on boot. Schedules use alarms; events are debounced to one run per capsule every 2 minutes.
+- The AI can propose capsules; the user saves them from the card.
