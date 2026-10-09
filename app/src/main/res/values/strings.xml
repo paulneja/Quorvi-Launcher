@@ -1107,6 +1107,7 @@
     <string name="blk_gh_pending">GitHub pending</string>
     <string name="blk_glass">Glass space</string>
     <string name="menu_glass">Add glass space</string>
+    <string name="glass_space_hint">Glass space · drag apps on top</string>
     <string name="gh_pending_signin">Connect GitHub to see your pending issues and PRs.</string>
     <string name="gh_pending_connect">Connect</string>
     <string name="gh_pending_counts">%1$d PR · %2$d issues</string>
