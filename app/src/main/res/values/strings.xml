@@ -1210,4 +1210,5 @@
     <string name="import_err_access">Couldn\'t open the launcher\'s data</string>
     <string name="import_err_no_db">That launcher has no layout database (launcher*.db)</string>
     <string name="import_err_root">The root copy failed (code %d)</string>
+    <string name="voice_default_style">Speak naturally and warmly, like a real person in a relaxed conversation.</string>
 </resources>
