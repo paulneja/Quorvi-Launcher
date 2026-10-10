@@ -32,4 +32,28 @@ class VoiceLogicTest {
         repeat(60) { g.feed(0.003f) }
         assertEquals(SpeechGate.State.DONE, g.state)
     }
+
+    @Test
+    fun gateGivesUpWhenNobodyTalksAndIgnoresClicks() {
+        val g = SpeechGate()
+        repeat(100) { i -> g.feed(if (i % 25 == 0) 0.3f else 0.002f) }
+        assertEquals(SpeechGate.State.WAITING, g.state)
+        repeat(300) { g.feed(0.002f) }
+        assertEquals(SpeechGate.State.NOTHING, g.state)
+    }
+
+    @Test
+    fun markdownBecomesSpeech() {
+        assertEquals("Mirá la documentación: ejemplo, listo", Speakable.clean("## Mirá la [documentación](https://x.dev):\n```kotlin\nval a = 1\n```\n- **ejemplo**\n- `listo`"))
+    }
+
+    @Test
+    fun chunkerSpeaksSentencesAsTheyStreamAndNeverInsideCode() {
+        val c = SpeechChunker(minChars = 10)
+        assertTrue(c.next("Hola, ¿cómo", false).isEmpty())
+        assertEquals(listOf("Hola, ¿cómo estás hoy?"), c.next("Hola, ¿cómo estás hoy? Te cuento", false))
+        assertTrue(c.next("Hola, ¿cómo estás hoy? Te cuento algo:\n```\nuno. dos. tres", false) == listOf("Te cuento algo:"))
+        assertTrue(c.next("Hola, ¿cómo estás hoy? Te cuento algo:\n```\nuno. dos. tres", false).isEmpty())
+        assertEquals(listOf("Y eso es todo"), c.next("Hola, ¿cómo estás hoy? Te cuento algo:\n```\nuno. dos. tres\n```\nY eso es todo", true))
+    }
 }
