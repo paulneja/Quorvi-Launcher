@@ -1217,6 +1217,7 @@
     <string name="models_add">+ Add model</string>
     <string name="models_choose_short">Models</string>
     <string name="models_nav_auto">Automatic: the first provider</string>
+    <string name="voice_mode_speaking">Talk to interrupt</string>
     <string name="voice_nav_off">Off</string>
     <string name="fb_title">Full backup (encrypted)</string>
     <string name="engine_no_model">No model is set up. Add a provider in Settings → AI and try again.</string>
