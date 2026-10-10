@@ -128,6 +128,58 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".voice.AssistantActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity="nexo.assistant"
+            android:label="@string/voice_label"
+            android:theme="@style/Theme.Quorvi.Translucent"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.ASSIST" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VOICE_COMMAND" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <service
+            android:name=".voice.NexoVoiceService"
+            android:enabled="false"
+            android:exported="true"
+            android:label="@string/voice_label"
+            android:permission="android.permission.BIND_VOICE_INTERACTION">
+            <meta-data android:name="android.voice_interaction" android:resource="@xml/voice_interaction" />
+            <intent-filter>
+                <action android:name="android.service.voice.VoiceInteractionService" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".voice.NexoSessionService"
+            android:enabled="false"
+            android:exported="true"
+            android:permission="android.permission.BIND_VOICE_INTERACTION" />
+        <service
+            android:name=".voice.NexoRecognitionService"
+            android:enabled="false"
+            android:exported="true"
+            android:label="@string/voice_label">
+            <meta-data android:name="android.speech" android:resource="@xml/recognition_service" />
+            <intent-filter>
+                <action android:name="android.speech.RecognitionService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+        <activity
+            android:name=".ui.chat.ChatActivity"
+            android:exported="false"
+            android:label="@string/chat_label"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".ui.accounts.AccountsActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
