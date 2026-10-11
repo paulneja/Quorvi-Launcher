@@ -158,3 +158,28 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - Capsules are mainly saved AI instructions that run in their own chat; fixed-step JSON capsules remain an advanced option, compiled against the real tools before saving or running.
 - Triggers: manual, every N minutes (min 15), daily at a time on chosen days, on charging, on joining a Wi-Fi network, on a notification from an app, on a failed CI run and on boot. Schedules use alarms; events are debounced to one run per capsule every 2 minutes.
 - The AI can propose capsules; the user saves them from the card.
+
+## Voice
+
+- Off by default. When off, the voice button is hidden and the assistant activity, voice interaction service, session and recognition service are disabled in `PackageManager`.
+- Quorvi can be the system's digital assistant. Speech is transcribed by the user's own AI provider (`/audio/transcriptions`, or a chat model that takes audio), never Google's recognizer.
+- Answers come from the Nexo agent and are spoken by the provider's TTS (`/audio/speech` with style, or Gemini's native TTS), sentence by sentence as the answer streams. Playback speed is adjustable on the phone.
+- Voice mode inside the chat keeps the conversation going and can be interrupted by talking over it (echo-cancelled capture).
+
+## The orb
+
+- Drawn with AGSL shaders: the **Pearl** in chat (liquid glass with an iridescent fluid inside) and the **Singularity** in Ultra (a dark core in a spinning plasma disk with lensing, corona and an orbiting swarm).
+- Five states (idle, listening, thinking, speaking, working) plus the voice level; leans with the phone.
+- Switching to Ultra plays a 2.6 s sequence drawn far beyond the orb: instability, implosion, flash, shockwave with debris and polar jets, then the disk forms.
+- Falls back to a Canvas orb below Android 13 or if a shader fails to compile.
+
+## Backup
+
+- The scene export (layout and appearance) never contains secrets.
+- The full backup is a `.qbk` file sealed with a password: PBKDF2-SHA256 (310 000 iterations) → AES-256-GCM. Parts: home and settings, AI (providers, API keys, models), chats and memory, capsules and agents, GitHub and servers.
+- Import decrypts and validates, stages the files and applies them at the next start in `QuorviApp.onCreate`, before Hilt opens Room or DataStore, under a cross-process file lock. Credentials are re-encrypted with the new phone's key; only backups of the same database version are accepted.
+
+## Open questions
+
+1. Raising the target SDK requires running binaries another way (`linker64` + preload).
+2. The remote worker protocol (spec §10.2).
