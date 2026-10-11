@@ -6,15 +6,16 @@ The roadmap follows the spec's deliverables (P0–P7). Each phase ends with `./g
 
 | Phase | Status |
 |---|---|
-| 0. Base | In progress |
-| 1. Canvas + glass design | In progress |
-| 2. Command | Planned |
-| 3. GitHub + Operations | Planned |
-| 4. Agent + Copilot bridge + runtime | Planned |
-| 5. SSH / Docker / HTTP | Planned |
-| 6. Autonomy, memory, remote worker | Planned |
-| 7. Android control + Control Studio | Planned |
-| 8. Advanced customization | Planned |
+| 0. Base | Done |
+| 1. Canvas + glass design | Done (Macrobenchmark on the phone still pending) |
+| 2. Command | Done |
+| 3. GitHub + Operations | Done |
+| 4. Agent + Copilot bridge + runtime | Done |
+| 5. SSH / Docker / HTTP | Done (Docker actions on a throwaway container pending) |
+| 6. Autonomy, memory, remote worker | Done (Home Assistant and GitLab without real instances) |
+| 7. Android control + Control Studio | Done (phone-to-phone pairing pending) |
+| 8. Advanced customization | Partial: capsules done; declarative scene editor and SystemUI experiment not started |
+| Chat, Ultra, voice, orb, backup | Done |
 
 ## Phase 1. Canvas + glass design (spec P1 + P2)
 
@@ -74,3 +75,10 @@ Control Studio, in-memory notifications, media, Drive copies, Discord webhooks, 
 Action capsules (AI instructions with triggers, plus fixed-step JSON), a declarative scene editor and a SystemUI experiment.
 
 **Acceptance:** extreme configurations import and restore without losing launcher recovery.
+
+## Beyond the spec
+
+- **Chat and Ultra:** streaming chat turns with every tool, orchestra with model chains, memory, attachments, image generation, Ultra repository work with user-approved PRs, `@meta`, `@investigar`, `/plan`.
+- **Voice:** a system assistant using the user's own AI provider for speech in both directions, voice mode inside the chat.
+- **The orb:** AGSL Pearl and Singularity with state reactions and the switch transition.
+- **Backup:** password-sealed full backups.
