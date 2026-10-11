@@ -3,6 +3,12 @@
     <string name="app_name" translatable="false">Quorvi</string>
     <string name="search_apps">Search apps</string>
     <string name="no_results">No apps match “%1$s”</string>
+    <string name="add_to_home">Add to home</string>
+    <string name="add_to_dock">Add to dock</string>
+    <string name="remove_from_home">Remove</string>
+    <string name="app_info">App info</string>
+    <string name="uninstall">Uninstall</string>
+    <string name="home_full">No free space on the home screen</string>
     <string name="launch_failed">Could not open %1$s</string>
     <string name="make_default">Set Quorvi as your home screen</string>
     <string name="settings_title">Settings</string>
@@ -38,15 +44,18 @@
     <string name="menu_settings">Settings</string>
     <string name="menu_labs">Labs</string>
     <string name="menu_studio">Studio</string>
+    <string name="menu_resize">Resize</string>
     <string name="menu_remove_from_folder">Take out of folder</string>
     <string name="search_hint">Search</string>
     <string name="drop_remove">Remove</string>
     <string name="drop_uninstall">Uninstall</string>
     <string name="no_space">No free space for that</string>
     <string name="cannot_place">That doesn\'t fit there</string>
+    <string name="folder_name_hint">Folder name</string>
     <string name="widgets_title">Widgets</string>
     <string name="widgets_search">Search widgets</string>
     <string name="widgets_empty">No widgets match</string>
+    <string name="resize_done">Done</string>
     <string name="wallpaper_failed">Couldn\'t set that wallpaper</string>
     <string name="wallpaper_title">Wallpaper</string>
     <string name="wallpaper_pick">Choose a photo</string>
@@ -56,6 +65,7 @@
     <string name="wallpaper_current_hint">Needs access to all files so Quorvi can read it</string>
     <string name="wallpaper_current_live">Your current wallpaper is animated; the glass can\'t see it</string>
     <string name="wallpaper_system">Android wallpaper picker</string>
+    <string name="wallpaper_grant">Grant access</string>
     <string name="tab_personal">Personal</string>
     <string name="tab_work">Work</string>
     <string name="private_space">Private space</string>
@@ -71,9 +81,15 @@
     <string name="pin_title">Add to home screen</string>
     <string name="pin_add">Add</string>
     <string name="pin_cancel">Cancel</string>
+    <string name="studio_appearance">Appearance</string>
     <string name="studio_accent">Accent color</string>
+    <string name="studio_glass">Glass intensity</string>
     <string name="studio_icon_size">Icon size</string>
     <string name="studio_labels">Show app names</string>
+    <string name="studio_motion">Motion</string>
+    <string name="motion_instant">Instant</string>
+    <string name="motion_balanced">Balanced</string>
+    <string name="motion_cinematic">Cinematic</string>
     <string name="studio_grid">Grid</string>
     <string name="grid_auto">Automatic</string>
     <string name="grid_manual">Manual</string>
@@ -109,7 +125,9 @@
     <string name="command_copied">Copied %1$s</string>
     <string name="command_edit_home">Edit home screen</string>
     <string name="accounts_title">Accounts and models</string>
+    <string name="accounts_hint">GitHub, Copilot, your bridge and AI providers</string>
     <string name="accounts_github_unavailable">This build has no GitHub client ID</string>
+    <string name="accounts_github_as">Signed in as @%1$s</string>
     <string name="accounts_sign_out">Sign out</string>
     <string name="accounts_enter_code">Enter this code on GitHub (tap it to copy):</string>
     <string name="accounts_open_github">Open GitHub</string>
@@ -126,6 +144,7 @@
     <string name="accounts_copilot_plan">Plan: %1$s</string>
     <string name="accounts_copilot_unlimited">Premium requests: unlimited</string>
     <string name="accounts_copilot_quota">Premium requests left: %1$d of %2$d</string>
+    <string name="accounts_models">AI models</string>
     <string name="accounts_models_none">No model configured. Agents need one.</string>
     <string name="accounts_add_copilot">Add GitHub Copilot</string>
     <string name="accounts_add_bridge">Add my Orbit Bridge</string>
@@ -137,6 +156,7 @@
     <string name="accounts_base_url">Base URL (https://…/v1)</string>
     <string name="accounts_pairing_code">Pairing code</string>
     <string name="accounts_api_key">API key</string>
+    <string name="accounts_test">Test connection</string>
     <string name="accounts_test_ok">Connected (%1$s) · %2$d models</string>
     <string name="accounts_model">Model id</string>
     <string name="accounts_roles">Use it for</string>
@@ -164,6 +184,11 @@
     <string name="ops_log_search">Search the log</string>
     <string name="ops_resume">Resume</string>
     <string name="ops_pause">Pause</string>
+    <string name="ops_cancel">Cancel run</string>
+    <string name="ops_steps">Steps</string>
+    <string name="ops_artifacts">Artifacts</string>
+    <string name="ops_timeline">Timeline</string>
+    <string name="ops_verified">verified</string>
     <string name="card_ci">GitHub CI</string>
     <string name="card_ci_failing">%1$d failing</string>
     <string name="card_ci_empty">No workflow runs yet. Pick repositories in Accounts.</string>
@@ -188,6 +213,8 @@
     <string name="ops_kill_hint">Cancels every agent and stops their processes</string>
     <string name="ops_indicator">Agent indicator</string>
     <string name="ops_answer_hint">Your answer</string>
+    <string name="ops_answer">Send answer</string>
+    <string name="ops_not_verified">not verified</string>
     <string name="ops_runtime">Terminal</string>
     <string name="ops_runtime_ready">Ready · open terminal</string>
     <string name="ops_runtime_installing">Preparing the Unix environment…</string>
@@ -253,6 +280,7 @@
     <string name="card_docker_running">%1$d of %2$d running</string>
     <string name="card_stale">stale</string>
     <string name="policy_title">Autonomy and permissions</string>
+    <string name="policy_entry_hint">Mode, what agents may do alone, grants and audit log</string>
     <string name="policy_manual_hint">Agents ask before every action that changes something.</string>
     <string name="policy_auto_hint">Agents act within the rules below and ask when a rule says so.</string>
     <string name="policy_bypass_hint">Fewer prompts: “ask” becomes “allow”, except publishing. Hard limits still apply.</string>
@@ -281,6 +309,7 @@
     <string name="policy_allow_hour">For 1 hour</string>
     <string name="policy_deny">Reject</string>
     <string name="memory_title">Memory</string>
+    <string name="memory_entry_hint">What agents remember about you and your projects</string>
     <string name="memory_hint">Agents read reviewed memories as context, with their source. Passwords, tokens, keys and codes are never stored.</string>
     <string name="memory_add_hint">Something agents should remember</string>
     <string name="memory_save">Remember</string>
@@ -292,6 +321,8 @@
     <string name="memory_forget">Forget</string>
     <string name="memory_export">Export</string>
     <string name="policy_cat_devices">Control smart home devices</string>
+    <string name="services_title">Services</string>
+    <string name="services_empty">Connect Home Assistant, GitLab or a remote worker that runs long tasks for agents.</string>
     <string name="services_add_ha">Connect Home Assistant</string>
     <string name="services_add_ha_hint">URL and a long-lived access token</string>
     <string name="services_add_gitlab">Connect GitLab</string>
@@ -323,10 +354,14 @@
     <string name="control_notifications">Notifications</string>
     <string name="control_notifications_allow">Allow notification access to see and group them here (optional)</string>
     <string name="control_notifications_empty">No notifications.</string>
+    <string name="ops_save_as">Save a copy to…</string>
+    <string name="ops_save_as_hint">Google Drive or any other location the system offers</string>
     <string name="services_add_discord">Connect a Discord channel</string>
     <string name="services_add_discord_hint">Through an official channel webhook; agents always ask before posting</string>
     <string name="services_discord_confirm">Type the channel name again to confirm</string>
     <string name="capsule_title">Action Capsules</string>
+    <string name="capsule_entry_hint">Reusable typed workflows that run without a model</string>
+    <string name="capsule_hint">A capsule is a saved list of tool steps. It is validated before it runs and asks for approval just like an agent.</string>
     <string name="capsule_new">New capsule</string>
     <string name="capsule_run">Run</string>
     <string name="capsule_check">Check</string>
@@ -347,6 +382,7 @@
     <string name="policy_relax_network">Let agents reach your local network</string>
     <string name="policy_power_hint">These lift the built-in limits. The category rules above still decide whether an action is allowed, asked or denied.</string>
     <string name="cap_title">Capabilities</string>
+    <string name="cap_entry_hint">Screen control, root, Shizuku and ADB — opt-in power features</string>
     <string name="cap_screen">Screen control</string>
     <string name="cap_screen_toggle">Let agents read and act on the screen</string>
     <string name="cap_screen_hint">Opens Accessibility settings. Turn on “Quorvi screen control”. A touch from you pauses the agent; password fields are never typed into.</string>
@@ -410,6 +446,7 @@
     <string name="tile_month">This month</string>
     <string name="tile_sys_priv_none">Standard user</string>
     <string name="tile_sys_charging">charging</string>
+    <string name="agent_prompt">Ask the agent…</string>
     <string name="agent_model">Model</string>
     <string name="agent_no_model">No model yet — add one</string>
     <string name="agent_autonomy">Autonomy</string>
@@ -417,12 +454,20 @@
     <string name="autonomy_auto">Auto</string>
     <string name="autonomy_bypass">Bypass</string>
     <string name="agent_screen">Screen control</string>
+    <string name="agent_screen_on">Enabled in accessibility</string>
+    <string name="agent_screen_off">Off — tap to enable</string>
     <string name="agent_root">Root / Shizuku</string>
+    <string name="agent_root_level">Level %s</string>
+    <string name="agent_root_off">Standard user</string>
     <string name="agent_lan">Local network</string>
     <string name="agent_lan_sub">Let agents reach your LAN</string>
+    <string name="agent_running">Running</string>
+    <string name="agent_recent">Recent</string>
     <string name="agent_none">Nothing running. Ask for something above.</string>
     <string name="agent_capsules">Capsules</string>
     <string name="agent_stop_all">Stop all</string>
+    <string name="agent_started">Started</string>
+    <string name="agent_open_ops">See everything in Operations</string>
     <string name="gh_ci_green">CI green</string>
     <string name="gh_prs">PRs for you</string>
     <string name="gh_repos_count">Repos</string>
@@ -576,6 +621,10 @@
     <string name="icon_squircle">Squircle</string>
     <string name="icon_shadow">Icon shadow</string>
     <string name="set_clock">Clock</string>
+    <string name="clock_small">Small</string>
+    <string name="clock_medium">Medium</string>
+    <string name="clock_large">Large</string>
+    <string name="clock_thin">Thin numbers</string>
     <string name="clock_weather">Show weather</string>
     <string name="clock_alarm">Show next alarm</string>
     <string name="set_bar">Bar and panels</string>
@@ -713,8 +762,11 @@
     <string name="mem_title">Memory</string>
     <string name="mem_use">Use memory</string>
     <string name="mem_use_desc">Nexo brings what it remembers into each chat.</string>
+    <string name="orc_add_fallback">Add fallback</string>
     <string name="orc_answer">Answer</string>
     <string name="orc_behaviour">BEHAVIOUR</string>
+    <string name="orc_change">Change</string>
+    <string name="orc_choose">Choose</string>
     <string name="orc_coordinator">Main model</string>
     <string name="orc_coordinator_desc">The one that talks to you and decides.</string>
     <string name="orc_default_model">Automatic: uses the first provider in the list.</string>
@@ -725,6 +777,7 @@
     <string name="orc_effort_medium">Medium</string>
     <string name="orc_enable">Use the orchestra</string>
     <string name="orc_enable_desc">Let Nexo hand specific work to the agents you set up below. Off: Nexo does everything itself.</string>
+    <string name="orc_fallbacks">If it fails, try in order:</string>
     <string name="orc_final_review">Final review</string>
     <string name="orc_final_review_desc">The reviewer checks answers that used tools before you see them.</string>
     <string name="orc_final_review_needs">Turn on Review with a model first.</string>
@@ -748,6 +801,7 @@
     <string name="orc_tasks">Background tasks</string>
     <string name="orc_tasks_desc">For long jobs Nexo starts a planned task and shows its progress in the chat.</string>
     <string name="orc_title">Orchestra</string>
+    <string name="orc_use_default">Use default</string>
     <string name="orc_you">You</string>
     <string name="sp_act_code">Programming</string>
     <string name="sp_act_image">Generating an image</string>
@@ -781,6 +835,8 @@
         <item quantity="other">Orchestra · %1$d agents</item>
     </plurals>
     <string name="page_numbered">Page %1$d</string>
+    <string name="agent_talk_title">Talk to Nexo</string>
+    <string name="agent_all_chats">All chats, memory and orchestra</string>
     <string name="agent_now">Running now</string>
     <string name="agent_how">How the agent works</string>
     <string name="agent_how_summary">%1$s · screen control %2$s</string>
@@ -844,7 +900,10 @@
     <string name="ultra_instructions">Instructions for code work</string>
     <string name="ultra_instructions_hint">E.g. use Kotlin idioms, keep tests green, small PRs…</string>
     <string name="pr_draft">Pull request draft</string>
+    <string name="pr_more_files">and %1$d more files</string>
     <string name="pr_commit">Commit</string>
+    <string name="pr_show_diff">See changes</string>
+    <string name="pr_hide_diff">Hide changes</string>
     <string name="pr_create">Create PR</string>
     <string name="pr_discard">Discard</string>
     <string name="pr_submitting">Creating branch, commit and pull request…</string>
