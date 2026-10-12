@@ -93,8 +93,9 @@ fun ApprovalCard(vm: PolicyViewModel, runId: String) {
     var comment by remember(a.id) { mutableStateOf("") }
     Text(stringResource(R.string.policy_approval_title), style = Quorvi.type.action, color = Quorvi.colors.text, modifier = Modifier.padding(top = 10.dp))
     Text(a.summary, style = Quorvi.type.caption.copy(fontFamily = FontFamily.Monospace), color = Quorvi.colors.text, modifier = Modifier.padding(vertical = 6.dp))
-    Hint(a.reason)
-    Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Hint(policyReason(a.reason))
+    @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+    androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when (a.action) {
             com.paulneja.quorvi.agent.policy.PolicyService.ROOT -> Chip(stringResource(R.string.policy_allow_root), accent = true) { vm.approve(a, ApprovalScope.ONCE) }
             com.paulneja.quorvi.agent.policy.PolicyService.UNUSUAL -> {
@@ -197,3 +198,25 @@ private fun categoryLabel(c: Category): String = stringResource(
         Category.WORKSPACE -> R.string.policy_cat_shell
     },
 )
+
+@Composable
+private fun policyReason(reason: String): String {
+    if (reason == "This command reaches files outside the job's workspace.") return stringResource(R.string.policy_reason_outside)
+    val danger = Regex("^This command (.+)\\.$").find(reason)?.groupValues?.get(1) ?: return reason
+    val res = when (danger) {
+        "deletes files recursively and without asking" -> R.string.policy_reason_0
+        "writes straight to a disk device" -> R.string.policy_reason_1
+        "runs a script downloaded from the internet" -> R.string.policy_reason_2
+        "runs hidden (encoded) commands" -> R.string.policy_reason_3
+        "can hang the system (fork bomb)" -> R.string.policy_reason_4
+        "restarts or shuts the machine down" -> R.string.policy_reason_5
+        "changes permissions of many files at once" -> R.string.policy_reason_6
+        "clears the firewall" -> R.string.policy_reason_7
+        "kills many processes" -> R.string.policy_reason_8
+        "erases schedules or history" -> R.string.policy_reason_9
+        "opens a remote shell" -> R.string.policy_reason_10
+        "changes apps or system settings" -> R.string.policy_reason_11
+        else -> return reason
+    }
+    return stringResource(R.string.policy_reason_command, stringResource(res))
+}

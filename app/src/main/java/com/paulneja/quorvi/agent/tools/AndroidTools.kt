@@ -133,3 +133,36 @@ private suspend fun runPriv(backend: PrivBackend, command: String, level: RootLe
         { ToolResult.failed(it.message ?: "privileged exec failed", ToolStatus.UNAUTHORIZED) },
     )
 }
+
+class InstallApk(private val context: android.content.Context) : Tool {
+    override val name = "android.install_apk"
+    override val description = "Install an APK built in your workspace on this phone (through Shizuku) and optionally open it. Use this instead of adb, pm or priv_shell to install apps."
+    override val risk = Risk.EXTERNAL
+    override val idempotent = false
+    override val parameters = schema {
+        string("path", "APK path, relative to your workspace")
+        boolean("open", "open the app after installing (default true)", optional = true)
+    }
+
+    override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val home = java.io.File(this@InstallApk.context.filesDir, "home").canonicalFile
+        val raw = args.string("path")
+        val file = (if (raw.startsWith("/")) java.io.File(raw) else java.io.File(java.io.File(home, context.workspace), raw)).canonicalFile
+        if (!file.path.startsWith(this@InstallApk.context.filesDir.canonicalPath + "/")) return@withContext ToolResult.failed("The APK must be inside your workspace")
+        if (!file.isFile) return@withContext ToolResult.failed("No APK at ${file.path}")
+        val info = this@InstallApk.context.packageManager.getPackageArchiveInfo(file.path, 0)
+            ?: return@withContext ToolResult.failed("${file.name} is not a valid APK (Android could not read it)")
+        val pkg = info.packageName
+        if (!com.paulneja.quorvi.control.ShizukuShell.available()) {
+            return@withContext ToolResult.failed("Shizuku is not running or not allowed for Quorvi, so the APK cannot be installed silently. Tell the user to start Shizuku, or export the APK to Downloads with artifact.export so they can install it by hand.", ToolStatus.UNAUTHORIZED)
+        }
+        context.emit("exec", "install $pkg from ${file.name}", null)
+        val installed = com.paulneja.quorvi.control.ShizukuShell.pipe(arrayOf("pm", "install", "-r", "-S", file.length().toString()), file, 180)
+        if (installed.exitCode != 0 || !installed.stdout.contains("Success")) {
+            return@withContext ToolResult.failed("pm install failed (exit ${installed.exitCode}): ${(installed.stdout + installed.stderr).trim().take(800)}")
+        }
+        val open = args.boolOrNull("open") != false
+        val opened = if (open) com.paulneja.quorvi.control.ShizukuShell.exec("monkey -p $pkg -c android.intent.category.LAUNCHER 1", 30).let { it.exitCode == 0 } else false
+        ToolResult(ToolStatus.SUCCESS, "Installed $pkg (version ${info.versionName ?: "?"})." + if (open) (if (opened) " Opened it." else " Could not open it automatically.") else "")
+    }
+}

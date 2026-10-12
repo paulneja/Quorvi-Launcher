@@ -19,7 +19,7 @@ object Watch {
         Regex("\\bnc\\b[^\\n]*\\s-e\\s|/dev/tcp/") to "opens a remote shell",
         Regex("\\bpm\\s+(uninstall|clear|disable)|\\bsettings\\s+put\\b") to "changes apps or system settings",
     )
-    private val outside = Regex("(^|[\\s\"'=:])(/system|/vendor|/etc/|/data/data/|/data/app|/sdcard/Android/data|~/\\.ssh|\\.ssh/|id_rsa|\\.gnupg)")
+    private val outside = Regex("(^|[\\s\"'=:])(/data/data/(?!quorvi\\.)|/data/app|/data/user/|/sdcard/Android/data|~/\\.ssh|\\.ssh/|id_rsa|\\.gnupg)")
 
     fun usesRoot(tool: String, resource: String): Boolean = tool in rootTools || (tool in commandTools && root.containsMatchIn(resource))
 

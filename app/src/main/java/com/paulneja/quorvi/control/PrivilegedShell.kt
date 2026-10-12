@@ -69,6 +69,15 @@ class PrivilegedShells @Inject constructor(
     suspend fun exec(backend: PrivBackend, command: String, level: RootLevel = RootLevel.EXEC, timeoutSec: Long = 120): PrivResult {
         val cfg = config()
         if (backend !in cfg.enabled) throw PrivUnavailable("${backend.name} is turned off in settings")
+        val start = System.currentTimeMillis()
+        com.paulneja.quorvi.agent.engine.AgentLog.i(null, "priv ${backend.name} start: ${com.paulneja.quorvi.agent.engine.AgentLog.clean(command)}")
+        return runCatching { execOn(backend, cfg, command, level, timeoutSec) }
+            .onSuccess { com.paulneja.quorvi.agent.engine.AgentLog.i(null, "priv ${backend.name} exit=${it.exitCode} timedOut=${it.timedOut} in ${System.currentTimeMillis() - start} ms") }
+            .onFailure { com.paulneja.quorvi.agent.engine.AgentLog.w(null, "priv ${backend.name} failed after ${System.currentTimeMillis() - start} ms", it) }
+            .getOrThrow()
+    }
+
+    private suspend fun execOn(backend: PrivBackend, cfg: com.paulneja.quorvi.core.settings.PrivilegedConfig, command: String, level: RootLevel, timeoutSec: Long): PrivResult {
         return when (backend) {
             PrivBackend.ROOT -> {
                 if (!cfg.rootLevel.allows(level)) throw PrivUnavailable("Root is limited to ${cfg.rootLevel} (you asked for $level)")
@@ -161,6 +170,14 @@ object ShizukuShell {
 
     private const val REQUEST = 7301
 
+    suspend fun pipe(argv: Array<String>, input: java.io.File, timeoutSec: Long): PrivResult = withContext(Dispatchers.IO) {
+        val shizuku = Class.forName("rikka.shizuku.Shizuku")
+        val newProcess = shizuku.getDeclaredMethod("newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java).apply { isAccessible = true }
+        val process = newProcess.invoke(null, argv, null, null) as Process
+        Thread { runCatching { process.outputStream.use { out -> input.inputStream().use { it.copyTo(out) } } } }.apply { isDaemon = true; start() }
+        collect("shizuku", process, timeoutSec)
+    }
+
     suspend fun exec(command: String, timeoutSec: Long): PrivResult = withContext(Dispatchers.IO) {
         val shizuku = Class.forName("rikka.shizuku.Shizuku")
         val newProcess = shizuku.getDeclaredMethod("newProcess", Array<String>::class.java, Array<String>::class.java, String::class.java).apply { isAccessible = true }
@@ -181,8 +198,11 @@ private fun collect(backend: String, process: Process, timeoutSec: Long): PrivRe
     val err = StringBuilder()
     val tOut = Thread { process.inputStream.bufferedReader().forEachLine { out.appendLine(it) } }.apply { isDaemon = true; start() }
     val tErr = Thread { process.errorStream.bufferedReader().forEachLine { err.appendLine(it) } }.apply { isDaemon = true; start() }
-    val finished = process.waitFor(timeoutSec, TimeUnit.SECONDS)
+    var code = -1
+    val waiter = Thread { code = runCatching { process.waitFor() }.getOrDefault(-1) }.apply { isDaemon = true; start() }
+    waiter.join(timeoutSec * 1000)
+    val finished = !waiter.isAlive
     if (!finished) process.destroyForcibly()
     tOut.join(2000); tErr.join(2000)
-    return PrivResult(backend, if (finished) process.exitValue() else -1, out.toString().take(64_000), err.toString().take(16_000), !finished)
+    return PrivResult(backend, if (finished) code else -1, out.toString().take(64_000), err.toString().take(16_000), !finished)
 }

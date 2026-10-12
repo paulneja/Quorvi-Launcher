@@ -17,6 +17,9 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.double
 
 private const val MAX_TOOL_OUTPUT = 12_000
 
@@ -392,4 +395,49 @@ class DiscordPost(private val services: com.paulneja.quorvi.connections.services
     }
 
     override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult = ToolResult.ok("Posted to " + services.postDiscord(args.string("channel"), args.string("message")))
+}
+
+class WeatherForecast(private val http: Http, private val place: suspend () -> Triple<String, Double, Double>?) : Tool {
+    override val name = "weather.forecast"
+    override val description = "Current weather and the hourly forecast for the next 3 days where the user's phone is (the same place the home screen shows). Use it for any weather or what-to-wear question; pass a city only if the user asks about somewhere else."
+    override val risk = Risk.NETWORK
+    override val idempotent = true
+    override val parameters = schema { string("city", "Only if the user asks about another place", optional = true) }
+
+    override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult {
+        val city = args.stringOrNull("city")?.trim()?.takeIf { it.isNotEmpty() }
+        val target = if (city == null) place() else geocode(city)
+        target ?: return ToolResult.failed(if (city == null) "No location yet: ask the user for their city." else "Could not find $city.")
+        val (name, lat, lon) = target
+        val url = "https://api.open-meteo.com/v1/forecast?latitude=${"%.3f".format(java.util.Locale.US, lat)}&longitude=${"%.3f".format(java.util.Locale.US, lon)}" +
+            "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,precipitation_probability,weather_code" +
+            "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset&timezone=auto&forecast_days=3"
+        val body = http.getText(url, emptyMap())
+        return ToolResult(ToolStatus.SUCCESS, "Place: $name\nWeather codes are WMO (0 clear, 1-3 cloudy, 45/48 fog, 51-67 drizzle/rain, 71-77 snow, 80-82 showers, 95+ storms).\n" + summarize(body))
+    }
+
+    private suspend fun geocode(city: String): Triple<String, Double, Double>? = runCatching {
+        val json = http.json.parseToJsonElement(http.getText("https://geocoding-api.open-meteo.com/v1/search?name=${java.net.URLEncoder.encode(city, "UTF-8")}&count=1&language=es&format=json", emptyMap())).jsonObject
+        val r = json["results"]!!.jsonArray.first().jsonObject
+        Triple(listOfNotNull(r["name"]?.jsonPrimitive?.content, r["admin1"]?.jsonPrimitive?.content, r["country"]?.jsonPrimitive?.content).joinToString(", "), r["latitude"]!!.jsonPrimitive.double, r["longitude"]!!.jsonPrimitive.double)
+    }.getOrNull()
+
+    private fun summarize(body: String): String = runCatching {
+        val o = http.json.parseToJsonElement(body).jsonObject
+        val cur = o["current"]!!.jsonObject
+        val hourly = o["hourly"]!!.jsonObject
+        val times = hourly["time"]!!.jsonArray.map { it.jsonPrimitive.content }
+        val temps = hourly["temperature_2m"]!!.jsonArray.map { it.jsonPrimitive.content }
+        val rain = hourly["precipitation_probability"]!!.jsonArray.map { it.jsonPrimitive.content }
+        val codes = hourly["weather_code"]!!.jsonArray.map { it.jsonPrimitive.content }
+        val daily = o["daily"]!!.jsonObject
+        buildString {
+            append("Now: ${cur["temperature_2m"]} °C (feels ${cur["apparent_temperature"]} °C), code ${cur["weather_code"]}, wind ${cur["wind_speed_10m"]} km/h\n")
+            daily["time"]!!.jsonArray.forEachIndexed { i, d ->
+                append("${d.jsonPrimitive.content}: min ${daily["temperature_2m_min"]!!.jsonArray[i]} °C, max ${daily["temperature_2m_max"]!!.jsonArray[i]} °C, rain ${daily["precipitation_probability_max"]!!.jsonArray[i]}%, sunrise ${daily["sunrise"]!!.jsonArray[i].jsonPrimitive.content.substringAfter('T')}\n")
+            }
+            append("Every 3 hours (time °C rain% code):\n")
+            for (i in times.indices step 3) append("${times[i].replace('T', ' ')} ${temps[i]} ${rain[i]}% ${codes[i]}\n")
+        }
+    }.getOrDefault(body.take(6000))
 }

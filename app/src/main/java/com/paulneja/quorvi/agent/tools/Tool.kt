@@ -72,6 +72,7 @@ class SchemaBuilder {
 
     fun string(name: String, description: String, optional: Boolean = false) = add(name, "string", description, optional)
     fun integer(name: String, description: String, optional: Boolean = true) = add(name, "integer", description, optional)
+    fun boolean(name: String, description: String, optional: Boolean = true) = add(name, "boolean", description, optional)
     fun stringArray(name: String, description: String, optional: Boolean = false) {
         properties[name] = buildJsonObject {
             put("type", "array")

@@ -20,6 +20,7 @@ import com.paulneja.quorvi.runtime.RuntimeClient
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 
 class ProviderModels @Inject constructor(private val providers: ModelProviders) : ModelSource {
     override suspend fun forRole(role: ModelRole): ModelChoice? =
@@ -30,6 +31,8 @@ class ProviderModels @Inject constructor(private val providers: ModelProviders) 
 }
 
 class RuntimeToolBox @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
+    private val settings: com.paulneja.quorvi.core.settings.QuorviSettings,
     private val runtime: RuntimeClient,
     private val http: Http,
     private val dao: OpsDao,
@@ -43,12 +46,26 @@ class RuntimeToolBox @Inject constructor(
     private val screen: com.paulneja.quorvi.control.ScreenControlBroker,
     private val privileged: com.paulneja.quorvi.control.PrivilegedShells,
 ) : ToolBox {
+    private suspend fun homePlace(): Triple<String, Double, Double>? = runCatching {
+        val p = settings.weatherPlace.first()?.split('\u0001')?.takeIf { it.size == 3 } ?: return@runCatching null
+        val name = settings.weatherCache.first()?.split('\u0001')?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: p[0]
+        Triple(name, p[1].toDouble(), p[2].toDouble())
+    }.getOrNull()
+
+    override suspend fun whereabouts(): String? = runCatching {
+        val place = settings.weatherPlace.first()?.split('\u0001')?.takeIf { it.size == 3 }
+        val cachedName = settings.weatherCache.first()?.split('\u0001')?.firstOrNull()?.trim()
+        val name = cachedName?.takeIf { it.isNotEmpty() } ?: place?.get(0)?.takeIf { it.isNotBlank() } ?: return@runCatching null
+        val coords = place?.let { p -> p[1].toDoubleOrNull()?.let { lat -> p[2].toDoubleOrNull()?.let { lon -> lat to lon } } }
+        if (coords == null) name else "$name. For weather or what to wear, call weather_forecast once; do not use other weather sites."
+    }.getOrNull()
+
     override suspend fun memories(goal: String): List<String> = memory.contextFor(goal).map { "[${it.kind.lowercase()}, from ${it.source}] ${it.text}" }
 
     override suspend fun allTools(): List<Tool> = buildTools(includeCi = session.tokens.signedIn())
 
     private suspend fun buildTools(includeCi: Boolean): List<Tool> {
-        val tools = mutableListOf<Tool>(FsWrite(runtime), FsRead(runtime), FsList(runtime), ShellExec(runtime), ArtifactExport(runtime, dao), WebSearch(http), WebFetch(http), com.paulneja.quorvi.agent.tools.MemorySearch(memory), com.paulneja.quorvi.agent.tools.MemoryPropose(memory))
+        val tools = mutableListOf<Tool>(FsWrite(runtime), FsRead(runtime), FsList(runtime), ShellExec(runtime), ArtifactExport(runtime, dao), WebSearch(http), WebFetch(http), com.paulneja.quorvi.agent.tools.WeatherForecast(http) { homePlace() }, com.paulneja.quorvi.agent.tools.MemorySearch(memory), com.paulneja.quorvi.agent.tools.MemoryPropose(memory))
         connections.hosts().filter { it.agentAccess && it.hostKeyFingerprint != null }.let { if (it.isNotEmpty()) tools += com.paulneja.quorvi.agent.tools.SshExec(hosts, it) }
         services.workers().let { if (it.isNotEmpty()) tools += com.paulneja.quorvi.agent.tools.RemoteRun(services, it) }
         services.discordChannels().let { if (it.isNotEmpty()) tools += com.paulneja.quorvi.agent.tools.DiscordPost(services, it) }
@@ -70,13 +87,14 @@ class RuntimeToolBox @Inject constructor(
         val backends = privileged.config().enabled
         if (backends.isNotEmpty()) {
             tools += com.paulneja.quorvi.agent.tools.PrivShell(privileged, backends)
+            if (com.paulneja.quorvi.control.PrivBackend.SHIZUKU in backends) tools += com.paulneja.quorvi.agent.tools.InstallApk(appContext)
             if (com.paulneja.quorvi.control.PrivBackend.ROOT in backends) tools += com.paulneja.quorvi.agent.tools.RootPowerHook(privileged)
         }
         return tools
     }
 
     override suspend fun ultraWorkspace(chatId: String): com.paulneja.quorvi.agent.ultra.UltraWorkspace? {
-        if (runtime.availability() != RuntimeAvailability.READY) return null
+        if (!runtime.ensureReady()) return null
         return com.paulneja.quorvi.agent.ultra.UltraWorkspace(runtime, { session.tokens.valid() }, chatId)
     }
 
