@@ -191,7 +191,7 @@
     <string name="card_ci">CI de GitHub</string>
     <string name="card_ci_failing">%1$d fallando</string>
     <string name="card_ci_empty">Todavía no hay runs. Elegí repositorios en Cuentas.</string>
-    <string name="agents_channel">Agentes de Nexo trabajando en segundo plano</string>
+    <string name="agents_channel">Trabajo en segundo plano</string>
     <string name="agents_stop_all">Detener todo</string>
     <string name="agents_working_hint">Abrí Tareas para ver cada paso.</string>
     <plurals name="agents_working">
@@ -385,7 +385,7 @@
     <string name="services_discord_confirm">Escribí de nuevo el nombre del canal para confirmar</string>
     <string name="capsule_title">Cápsulas</string>
     <string name="capsule_entry_hint">Flujos tipados reutilizables que corren sin modelo</string>
-    <string name="capsule_hint">Una cápsula es una lista guardada de pasos de herramientas. Se valida antes de correr y pide aprobación igual que un agente.</string>
+    <string name="capsule_hint">Una cápsula es una lista guardada de pasos. Se valida antes de correr y pide aprobación para lo que cambia algo.</string>
     <string name="capsule_new">Nueva cápsula</string>
     <string name="capsule_run">Ejecutar</string>
     <string name="capsule_check">Validar</string>
@@ -1345,7 +1345,7 @@
     <string name="fb_part_ai">IA: proveedores y claves</string>
     <string name="fb_part_ai_desc">Proveedores, claves de API, modelos y orquesta.</string>
     <string name="fb_part_chats">Chats y memoria</string>
-    <string name="fb_part_chats_desc">Todos los chats (también Ultra), sus adjuntos y lo que Nexo recuerda de vos.</string>
+    <string name="fb_part_chats_desc">Todos los chats, sus adjuntos y la memoria.</string>
     <string name="fb_part_agents">Cápsulas y agentes</string>
     <string name="fb_part_agents_desc">Cápsulas, permisos y aprobaciones de los agentes, y el historial de tareas.</string>
     <string name="fb_part_connections">GitHub y servidores</string>
@@ -1423,4 +1423,27 @@
     <string name="job_open_chat">Abrir chat</string>
     <string name="job_actions_hint">Detener la cierra bien; Matar la corta en seco. Nexo se entera en el chat. Pausar no avisa.</string>
     <string name="job_run_title">Tarea en segundo plano: %1$s</string>
+    <string name="ai_switch">Inteligencia artificial</string>
+    <string name="ai_switch_on">Nexo, los agentes, la voz y las cápsulas con IA están disponibles.</string>
+    <string name="ai_switch_off">Apagada: Nexo no aparece en ningún lado. Tus chats y ajustes quedan guardados.</string>
+    <string name="ai_off_stop">Detener y apagar</string>
+    <string name="ai_off_keep">Cancelar</string>
+    <string name="ai_voice_reclaim">Volvé a elegir a Nexo como asistente</string>
+    <string name="ai_needed">Activá la IA para usar este panel</string>
+    <string name="ai_needed_hint">La IA está apagada en Ajustes.</string>
+    <string name="ai_open_settings">Abrir ajustes</string>
+    <string name="ai_onboarding">Usar IA (Nexo)</string>
+    <string name="ai_onboarding_desc">Sin IA, Quorvi sigue siendo launcher, terminal y panel de tus conexiones.</string>
+    <string name="voice_experimental">Experimental: a veces puede funcionar raro o de forma inconsistente.</string>
+    <string name="voice_title_experimental">Asistente de voz (experimental)</string>
+    <string name="capsules_empty_fixed">Creá cápsulas de pasos fijos en Ajustes.</string>
+    <string name="capsule_new_fixed_desc">Pasos fijos en JSON</string>
+    <string name="mod_group_auto">Automatización</string>
+    <plurals name="ai_off_confirm">
+        <item quantity="one">Hay %d tarea en curso; se va a detener.</item>
+        <item quantity="other">Hay %d tareas en curso; se van a detener.</item>
+    </plurals>
+    <string name="mod_github_plain">GitHub</string>
+    <string name="mod_github_plain_desc">Tu cuenta, repos vigilados y GitLab</string>
+    <string name="ai_off_short">IA apagada</string>
 </resources>

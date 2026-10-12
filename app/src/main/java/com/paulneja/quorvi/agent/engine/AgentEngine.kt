@@ -138,6 +138,7 @@ class AgentEngine(
     private val ultra: suspend () -> com.paulneja.quorvi.agent.ultra.UltraConfig = { com.paulneja.quorvi.agent.ultra.UltraConfig() },
     internal val texts: EngineTexts = EngineTexts.English,
     private val tuning: suspend () -> AgentLimits? = { null },
+    private val aiOn: () -> Boolean = { true },
 ) : RunExecutor {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val jobs = ConcurrentHashMap<String, Job>()
@@ -150,7 +151,7 @@ class AgentEngine(
 
     override fun submit(specJson: String): String {
         val spec = runCatching { json.decodeFromString(RunSpec.serializer(), specJson) }.getOrNull() ?: return ""
-        if (spec.goal.isBlank()) return ""
+        if (spec.goal.isBlank() || !aiOn()) return ""
         val id = UUID.randomUUID().toString()
         launch(id) {
             val now = clock()

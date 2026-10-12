@@ -65,6 +65,7 @@ fun VoiceSettings(vm: VoiceSettingsViewModel) {
             Panel {
                 SwitchRow(stringResource(R.string.voice_enable), config.enabled) { on -> vm.setEnabled(on) }
                 Hint(stringResource(if (config.enabled) R.string.voice_enable_on else R.string.voice_enable_off))
+                Text(stringResource(R.string.voice_experimental), style = Quorvi.type.caption, color = Quorvi.colors.accent, modifier = Modifier.padding(bottom = 10.dp))
             }
         }
         if (!config.enabled) return@LazyColumn

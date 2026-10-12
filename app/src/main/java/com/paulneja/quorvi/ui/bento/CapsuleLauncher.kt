@@ -53,7 +53,9 @@ fun CapsuleLauncher(panels: PanelsViewModel, onCreate: () -> Unit) {
     val capsules by panels.capsules.collectAsStateWithLifecycle()
     val running by panels.runningCapsules.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
-    val state = if (capsules.isEmpty()) BlockState.Empty(stringResource(R.string.blk_capsules_empty), stringResource(R.string.blk_capsules_new), onCreate) else BlockState.Ready
+    val ai = com.paulneja.quorvi.ui.design.LocalAi.current
+    val create = if (ai) onCreate else { { com.paulneja.quorvi.ui.settings.SettingsActivity.open(context, com.paulneja.quorvi.ui.settings.SettingsModule.AGENTS) } }
+    val state = if (capsules.isEmpty()) BlockState.Empty(stringResource(if (ai) R.string.blk_capsules_empty else R.string.capsules_empty_fixed), stringResource(R.string.blk_capsules_new), create) else BlockState.Ready
     BentoBlock(state = state, padding = 10.dp, title = stringResource(R.string.blk_capsules), glyph = Glyphs.Bolt) {
         BoxWithConstraints(Modifier.fillMaxSize()) {
             val columns = (maxWidth / 140.dp).toInt().coerceIn(1, 4)
@@ -65,7 +67,7 @@ fun CapsuleLauncher(panels: PanelsViewModel, onCreate: () -> Unit) {
                 cells.chunked(columns).forEach { row ->
                     Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         row.forEach { c ->
-                            if (c == null) NewButton(Modifier.weight(1f), onCreate) else CapsuleButton(c, c.id in running, Modifier.weight(1f), onOpen = { com.paulneja.quorvi.ui.chat.ChatActivity.open(context, chat = com.paulneja.quorvi.agent.capsules.CapsuleLaunch.chatId(c.id)) }) { panels.launchCapsule(c) }
+                            if (c == null) NewButton(Modifier.weight(1f), ai, create) else CapsuleButton(c, c.id in running, Modifier.weight(1f), onOpen = { if (ai) com.paulneja.quorvi.ui.chat.ChatActivity.open(context, chat = com.paulneja.quorvi.agent.capsules.CapsuleLaunch.chatId(c.id)) }) { panels.launchCapsule(c) }
                         }
                         repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                     }
@@ -94,7 +96,7 @@ private fun CapsuleButton(c: CapsuleEntity, running: Boolean, modifier: Modifier
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Glyph(if (running) Glyphs.Retry else if (c.json.contains("\"prompt\"")) Glyphs.Sparkle else Glyphs.Bolt, 16.dp, accent, Modifier.graphicsLayer { if (running) rotationZ = glow * 360f })
+        Glyph(if (running) Glyphs.Retry else if (c.ai) Glyphs.Sparkle else Glyphs.Bolt, 16.dp, accent, Modifier.graphicsLayer { if (running) rotationZ = glow * 360f })
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
             Text(c.name, style = Quorvi.type.caption.copy(fontWeight = FontWeight.SemiBold), color = Quorvi.colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -107,7 +109,7 @@ private fun CapsuleButton(c: CapsuleEntity, running: Boolean, modifier: Modifier
 }
 
 @Composable
-private fun NewButton(modifier: Modifier, onCreate: () -> Unit) {
+private fun NewButton(modifier: Modifier, ai: Boolean, onCreate: () -> Unit) {
     Box(
         modifier.fillMaxSize().clip(Quorvi.shapes.control).border(1.dp, Color.White.copy(alpha = 0.14f), Quorvi.shapes.control).clickable(onClick = onCreate),
         contentAlignment = Alignment.Center,
@@ -115,7 +117,7 @@ private fun NewButton(modifier: Modifier, onCreate: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Glyph(Glyphs.Plus, 16.dp, Quorvi.colors.textSecondary)
             Spacer(Modifier.width(6.dp))
-            Text(stringResource(R.string.capsule_new_ai), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, maxLines = 1)
+            Text(stringResource(if (ai) R.string.capsule_new_ai else R.string.capsule_new), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, maxLines = 1)
         }
     }
 }

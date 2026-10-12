@@ -138,6 +138,7 @@ fun CanvasScreen(
     val hasHomeAssistant by viewModel.hasHomeAssistant.collectAsStateWithLifecycle()
     val activeRuns by viewModel.activeRuns.collectAsStateWithLifecycle()
     val agentIndicator by viewModel.agentIndicator.collectAsStateWithLifecycle()
+    val aiOn by viewModel.aiEnabled.collectAsStateWithLifecycle()
     val canvas = state ?: return
     val wallpaperLayer = rememberLayerBackdrop()
     val canvasLayer = rememberLayerBackdrop()
@@ -226,7 +227,7 @@ fun CanvasScreen(
     BackHandler(enabled = showWidgets) { showWidgets = false }
     BackHandler(enabled = showWallpaper) { showWallpaper = false }
     BackHandler(enabled = editing && !showWidgets && !showWallpaper) { editing = false }
-    CompositionLocalProvider(LocalGlassBackdrops provides backdrops, LocalGlassHighlight provides highlight, LocalBadges provides badges) {
+    CompositionLocalProvider(LocalGlassBackdrops provides backdrops, LocalGlassHighlight provides highlight, LocalBadges provides badges, com.paulneja.quorvi.ui.design.LocalAi provides aiOn) {
     LaunchedEffect(effects) {
         snapshotFlow { maxOf(drawer.progress, folderProgress.value, if (showWidgets || showCommand) 1f else 0f) }.collect { effects?.blur(it) }
     }
@@ -570,7 +571,7 @@ fun CanvasScreen(
                 )
             } else if (!look.minimalChrome && !onTerminal) {
                 androidx.compose.animation.AnimatedVisibility(
-                    visible = !dragging && activeRuns.isNotEmpty(),
+                    visible = !dragging && aiOn && activeRuns.isNotEmpty(),
                     enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
                     exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
                 ) { AgentIndicatorBar(activeRuns, agentIndicator, onOpen = callbacks.openAgents, onDismiss = { viewModel.dismissRuns(activeRuns) }) }
@@ -698,12 +699,12 @@ fun CanvasScreen(
             WidgetPicker(
                 widgets = widgets,
                 cards = buildList {
-                    add("panel:agent" to "Panel · " + panelNames[0])
+                    if (aiOn) add("panel:agent" to "Panel · " + panelNames[0])
                     add("panel:github" to "Panel · GitHub")
                     add("panel:network" to "Panel · " + panelNames[1])
                     add("panel:system" to "Panel · " + panelNames[2])
                     add("panel:shell" to "Panel · " + panelNames[3])
-                    blockNames.forEach { add(it) }
+                    blockNames.filter { aiOn || it.first != "agents" }.forEach { add(it) }
                     hostCards.forEach { h ->
                         add("host:${h.id}" to "Host · ${h.name}")
                         if (viewModel.health(h)?.docker == true) add("docker:${h.id}" to "Docker · ${h.name}")
@@ -737,7 +738,7 @@ fun CanvasScreen(
                         com.paulneja.quorvi.core.command.QuorviAction.OPERATIONS -> callbacks.openOperations()
                         com.paulneja.quorvi.core.command.QuorviAction.CONTROL -> com.paulneja.quorvi.control.SystemPanels.quickSettings(context)
                         com.paulneja.quorvi.core.command.QuorviAction.ACCOUNTS -> callbacks.openAccounts()
-                        com.paulneja.quorvi.core.command.QuorviAction.AGENTS -> callbacks.openAgents()
+                        com.paulneja.quorvi.core.command.QuorviAction.AGENTS -> if (aiOn) callbacks.openAgents()
                         com.paulneja.quorvi.core.command.QuorviAction.CAPABILITIES -> callbacks.openCapabilities()
                         com.paulneja.quorvi.core.command.QuorviAction.SHELL -> QuorviShell.open(context, view, null)
                     }
@@ -808,9 +809,9 @@ fun CanvasScreen(
             com.paulneja.quorvi.ui.onboarding.PresetChooser(
                 current = preset,
                 firstRun = preset == null,
-                onChoose = { chosen ->
+                onChoose = { chosen, withAi ->
                     choosingPreset = false
-                    viewModel.applyPreset(chosen)
+                    viewModel.applyPreset(chosen, withAi)
                     scope.launch { pager.scrollToPage(0) }
                 },
                 onClose = { choosingPreset = false },

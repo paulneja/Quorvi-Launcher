@@ -50,7 +50,9 @@ class OperationsViewModel @Inject constructor(
     private val runtime: com.paulneja.quorvi.runtime.RuntimeClient,
     private val settings: com.paulneja.quorvi.core.settings.QuorviSettings,
     private val services: com.paulneja.quorvi.connections.services.ServicesRepo,
+    ai: com.paulneja.quorvi.agent.engine.AiSwitch,
 ) : ViewModel() {
+    val aiEnabled: StateFlow<Boolean> = ai.enabled.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     private val _runtime = MutableStateFlow<com.paulneja.quorvi.runtime.RuntimeAvailability?>(null)
     val runtimeState: StateFlow<com.paulneja.quorvi.runtime.RuntimeAvailability?> = _runtime.asStateFlow()
     val indicator = settings.agentIndicator.stateIn(viewModelScope, SharingStarted.Eagerly, com.paulneja.quorvi.core.settings.AgentIndicator.COMPACT)

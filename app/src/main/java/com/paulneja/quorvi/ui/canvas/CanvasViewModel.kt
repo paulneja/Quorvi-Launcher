@@ -70,7 +70,9 @@ class CanvasViewModel @Inject constructor(
     private val githubAccount: com.paulneja.quorvi.connections.github.GitHubAccount,
     providers: com.paulneja.quorvi.agent.models.ProviderDao,
     private val runtime: com.paulneja.quorvi.runtime.RuntimeClient,
+    private val ai: com.paulneja.quorvi.agent.engine.AiSwitch,
 ) : ViewModel() {
+    val aiEnabled: StateFlow<Boolean> = ai.enabled.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     suspend fun runtimeAvailability(): com.paulneja.quorvi.runtime.RuntimeAvailability = runtime.availability()
 
     val badges: StateFlow<Set<String>> = notifications.badges.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
@@ -293,8 +295,9 @@ class CanvasViewModel @Inject constructor(
 
     fun movePage(from: Int, to: Int) = viewModelScope.launch { home.movePage(from, to) }
 
-    fun applyPreset(preset: com.paulneja.quorvi.core.settings.HomePreset) = viewModelScope.launch {
-        home.applyPreset(preset, home.currentApps())
+    fun applyPreset(preset: com.paulneja.quorvi.core.settings.HomePreset, withAi: Boolean? = null) = viewModelScope.launch {
+        withAi?.let { ai.set(it) }
+        home.applyPreset(preset, home.currentApps(), withAi ?: ai.current())
         settings.setLook(look.value.copy(minimalChrome = preset == com.paulneja.quorvi.core.settings.HomePreset.MINIMAL))
     }
 

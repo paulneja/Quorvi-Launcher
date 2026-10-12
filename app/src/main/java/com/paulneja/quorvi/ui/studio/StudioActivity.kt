@@ -470,7 +470,7 @@ internal fun StudioModule(viewModel: StudioViewModel, catalog: AppCatalog, modul
             }
         }
         if (choosing) {
-            com.paulneja.quorvi.ui.onboarding.PresetChooser(preset, firstRun = false, onChoose = { viewModel.applyPreset(it); choosing = false }, onClose = { choosing = false })
+            com.paulneja.quorvi.ui.onboarding.PresetChooser(preset, firstRun = false, onChoose = { chosen, _ -> viewModel.applyPreset(chosen); choosing = false }, onClose = { choosing = false })
         }
     }
 }

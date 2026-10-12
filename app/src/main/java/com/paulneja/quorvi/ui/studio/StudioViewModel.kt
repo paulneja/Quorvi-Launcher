@@ -55,6 +55,7 @@ class StudioViewModel @Inject constructor(
     private val wallpapers: WallpaperRepository,
     catalog: AppCatalog,
     private val importer: com.paulneja.quorvi.launcher.home.LauncherImportSource,
+    private val ai: com.paulneja.quorvi.agent.engine.AiSwitch,
 ) : ViewModel() {
     val appearance: StateFlow<Appearance> = settings.appearance.stateIn(viewModelScope, SharingStarted.Eagerly, Appearance())
     val layout: StateFlow<LayoutPrefs> = settings.layout.stateIn(viewModelScope, SharingStarted.Eagerly, LayoutPrefs())
@@ -67,7 +68,7 @@ class StudioViewModel @Inject constructor(
     fun resetLook() = viewModelScope.launch { settings.setLook(com.paulneja.quorvi.core.settings.Look(minimalChrome = look.value.minimalChrome)) }
 
     fun applyPreset(preset: com.paulneja.quorvi.core.settings.HomePreset) = viewModelScope.launch {
-        home.applyPreset(preset, home.currentApps())
+        home.applyPreset(preset, home.currentApps(), ai.current())
         settings.setLook(look.value.copy(minimalChrome = preset == com.paulneja.quorvi.core.settings.HomePreset.MINIMAL))
     }
 

@@ -47,7 +47,9 @@ class Console {
 class ConnectionsViewModel @Inject constructor(
     private val hosts: Hosts,
     private val widgets: HttpWidgets,
+    ai: com.paulneja.quorvi.agent.engine.AiSwitch,
 ) : ViewModel() {
+    val aiEnabled = ai.enabled.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val hostList: StateFlow<List<HostEntity>> = hosts.all.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val httpList: StateFlow<List<HttpWidgetEntity>> = widgets.all.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 4)

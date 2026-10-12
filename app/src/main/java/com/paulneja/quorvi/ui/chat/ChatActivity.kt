@@ -7,22 +7,26 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.lifecycle.lifecycleScope
 import com.paulneja.quorvi.ops.CoreClient
 import com.paulneja.quorvi.ui.design.QuorviDesign
 import com.paulneja.quorvi.ui.operations.PolicyViewModel
 import com.paulneja.quorvi.ui.theme.QuorviTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class ChatActivity : ComponentActivity() {
     @Inject lateinit var core: CoreClient
+    @Inject lateinit var ai: com.paulneja.quorvi.agent.engine.AiSwitch
     private val vm: ChatViewModel by viewModels()
     private val policy: PolicyViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        lifecycleScope.launch { ai.enabled.collect { if (!it) finish() } }
         if (savedInstanceState == null) intent.getStringExtra(EXTRA_CHAT)?.let { vm.open(it) }
         if (savedInstanceState == null) intent.getStringExtra(EXTRA_DRAFT)?.let { vm.seedDraft(it) }
         val prompt = if (savedInstanceState == null) intent.getStringExtra(EXTRA_PROMPT) else null

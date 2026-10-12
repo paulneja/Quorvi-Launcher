@@ -188,6 +188,14 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - Jobs are managed from the AI agent panel (the home widget shows live jobs and opens it): pause and resume (SIGSTOP/SIGCONT to the job's process group, silent), stop (TERM, then KILL after 2 s) and kill (KILL at once). Stopping or killing there gives the job's chat a turn saying the user ended it, and Nexo is told not to restart it. Stopping from the chat card is silent, since the user is already in that chat.
 - Deleting a chat (or all chats) stops its jobs first, with no follow-up.
 
+## AI switch
+
+- AI is optional. A switch at the top of Settings (and on the first-run screen) turns it off; it lives in `agent_config` (key `ai`) so `:app` and `:work` both see it live. A missing key means on.
+- Off hides every trace of Nexo: the AI and Ultra settings, policy, limits and runs, Copilot and AI providers, Discord, the agent indicator, agent search results and CI diagnosis, the chat (it closes itself if opened) and the Nexo page template. The agent panel, the agents block and the AI agent tile stay on the home screen with a note to turn AI on.
+- Turning it off stops runs and background jobs (with an inline confirmation when something is running), skips AI capsule triggers and alarms, disables the voice components (so Quorvi stops being the system assistant) and gives up the microphone permission on Android 13+.
+- Data is kept: chats, memory, keys and capsules come back unchanged when AI is turned back on. Fixed-step capsules, the terminal, GitHub, servers and monitors keep working, since they need no model. When AI returns and voice was on, Settings offers to pick Nexo as the assistant again (Android requires the user to choose it).
+- The engine refuses `submit` while AI is off; `submitCapsule` (fixed steps) is untouched. A first run without AI seeds the terminal panel instead of the agent panel.
+
 ## Backup
 
 - The scene export (layout and appearance) never contains secrets.

@@ -148,7 +148,9 @@ private enum class CiFilter { ALL, FAILING, RUNNING }
 @Composable
 private fun Operations(viewModel: OperationsViewModel, connections: ConnectionsViewModel, policy: PolicyViewModel, memory: MemoryViewModel, capsules: CapsuleViewModel, capabilities: CapabilitiesViewModel, start: String?, agentsFirst: Boolean, onBack: () -> Unit) {
     var route by rememberSaveable { mutableStateOf(start ?: "list") }
-    var tab by rememberSaveable { mutableStateOf(if (agentsFirst) Tab.AGENTS else Tab.CI) }
+    var chosenTab by rememberSaveable { mutableStateOf(if (agentsFirst) Tab.AGENTS else Tab.CI) }
+    val ai by viewModel.aiEnabled.collectAsStateWithLifecycle()
+    val tab = if (!ai && chosenTab == Tab.AGENTS) Tab.CI else chosenTab
     val colors = Quorvi.colors
     BackHandler(enabled = route != "list" && start == null || route.startsWith("log:") || route.startsWith("term:")) {
         route = when {
@@ -159,7 +161,7 @@ private fun Operations(viewModel: OperationsViewModel, connections: ConnectionsV
     }
     Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(colors.sunken, colors.content))).windowInsetsPadding(WindowInsets.safeDrawing)) {
         when {
-            route == "list" -> OperationsList(viewModel, connections, tab, { tab = it }, onBack, onOpenCi = { viewModel.openExecution(it); route = "ci:$it" }, onOpenRun = { route = "run:$it" }, onRoute = { route = it })
+            route == "list" || (!ai && (route == "policy" || route == "memory")) -> OperationsList(viewModel, connections, ai, tab, { chosenTab = it }, onBack, onOpenCi = { viewModel.openExecution(it); route = "ci:$it" }, onOpenRun = { route = "run:$it" }, onRoute = { route = it })
             route == "policy" -> PolicyScreen(policy, onBack = { route = "list" })
             route == "memory" -> MemoryScreen(memory, onBack = { route = "list" })
             route == "capsules" -> CapsulesTab(capsules, onEdit = { route = "capsule:$it" }, onRun = { route = "run:$it" })
@@ -186,7 +188,7 @@ private fun TopBar(title: String, onBack: () -> Unit, action: (@Composable () ->
 }
 
 @Composable
-private fun OperationsList(viewModel: OperationsViewModel, connections: ConnectionsViewModel, tab: Tab, onTab: (Tab) -> Unit, onBack: () -> Unit, onOpenCi: (String) -> Unit, onOpenRun: (String) -> Unit, onRoute: (String) -> Unit) {
+private fun OperationsList(viewModel: OperationsViewModel, connections: ConnectionsViewModel, ai: Boolean, tab: Tab, onTab: (Tab) -> Unit, onBack: () -> Unit, onOpenCi: (String) -> Unit, onOpenRun: (String) -> Unit, onRoute: (String) -> Unit) {
     val ci by viewModel.ci.collectAsStateWithLifecycle()
     val runs by viewModel.runs.collectAsStateWithLifecycle()
     val watched by viewModel.watched.collectAsStateWithLifecycle()
@@ -195,7 +197,7 @@ private fun OperationsList(viewModel: OperationsViewModel, connections: Connecti
     Column(Modifier.fillMaxSize()) {
         TopBar(stringResource(R.string.ops_title), onBack) { IconButton(Glyphs.Redo, viewModel::refresh) }
         Box(Modifier.padding(horizontal = 16.dp)) {
-            Segmented(listOf(Tab.AGENTS to stringResource(R.string.ops_agents), Tab.CI to stringResource(R.string.ops_ci), Tab.HOSTS to stringResource(R.string.ops_hosts), Tab.HTTP to "HTTP"), tab, onTab)
+            Segmented(listOfNotNull(if (ai) Tab.AGENTS to stringResource(R.string.ops_agents) else null, Tab.CI to stringResource(R.string.ops_ci), Tab.HOSTS to stringResource(R.string.ops_hosts), Tab.HTTP to "HTTP"), tab, onTab)
         }
         if (tab == Tab.HOSTS) {
             HostsTab(connections, onOpen = { onRoute("host:$it") }, onAdd = { onRoute("hostnew") })
@@ -217,7 +219,7 @@ private fun OperationsList(viewModel: OperationsViewModel, connections: Connecti
                     item {
                         Panel {
                             Hint(stringResource(if (!viewModel.signedIn) R.string.ops_ci_sign_in else R.string.ops_ci_no_repos))
-                            ActionRow(stringResource(R.string.mod_github), null) { context.startActivity(com.paulneja.quorvi.ui.settings.SettingsActivity.intent(context, com.paulneja.quorvi.ui.settings.SettingsModule.GITHUB)) }
+                            ActionRow(stringResource(if (ai) R.string.mod_github else R.string.mod_github_plain), null) { context.startActivity(com.paulneja.quorvi.ui.settings.SettingsActivity.intent(context, com.paulneja.quorvi.ui.settings.SettingsModule.GITHUB)) }
                         }
                     }
                 } else if (shown.isEmpty()) {
@@ -350,7 +352,8 @@ private fun CiDetail(viewModel: OperationsViewModel, id: String, onBack: () -> U
                     }
                     Hint(listOfNotNull(e.repo, "${e.workflow} #${e.number}", e.branch, e.event, e.actor?.let { "@$it" }, duration(e.startedAt, if (e.status == "completed") e.updatedAt else null)).joinToString(" · "))
                     ActionRow(stringResource(R.string.ops_open_github), null) { runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(e.url))) } }
-                    if (e.status == "completed" && (e.conclusion == "failure" || e.conclusion == "timed_out")) {
+                    val ai by viewModel.aiEnabled.collectAsStateWithLifecycle()
+                    if (ai && e.status == "completed" && (e.conclusion == "failure" || e.conclusion == "timed_out")) {
                         val goal = stringResource(R.string.ops_diagnose_goal, e.workflow, e.number, e.repo)
                         val unavailable = stringResource(R.string.command_agent_unavailable)
                         ActionRow(stringResource(R.string.ops_diagnose), stringResource(R.string.command_agent_ci)) {

@@ -29,8 +29,8 @@ android {
         minSdk = 29
 
         targetSdk = 28
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 4
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         val githubClientId = localProps.getProperty("github.clientId") ?: System.getenv("GITHUB_CLIENT_ID") ?: ""

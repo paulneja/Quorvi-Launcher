@@ -87,7 +87,9 @@ class PanelsViewModel @Inject constructor(
     chats: com.paulneja.quorvi.agent.chat.ChatDao,
     private val runtime: com.paulneja.quorvi.runtime.RuntimeClient,
     private val backgroundJobs: com.paulneja.quorvi.agent.jobs.BackgroundJobs,
+    ai: com.paulneja.quorvi.agent.engine.AiSwitch,
 ) : ViewModel() {
+    val aiEnabled = ai.enabled.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     init { viewModelScope.launch { runCatching { chatRepo.pruneOrphanRuns() } } }
 
     data class ShellEntry(val command: String, val output: String, val exitCode: Int?, val running: Boolean = false)
@@ -150,7 +152,7 @@ class PanelsViewModel @Inject constructor(
     val policyConfig: StateFlow<PolicyConfig> = policy.observeSettings().map { list -> PolicyConfig.from(list.associate { it.key to it.value }) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PolicyConfig())
     val privileged: StateFlow<PrivilegedConfig> = settings.privileged.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PrivilegedConfig())
-    val capsules: StateFlow<List<CapsuleEntity>> = capsules.observe().map { list -> list.filter { it.enabled } }
+    val capsules: StateFlow<List<CapsuleEntity>> = combine(capsules.observe(), aiEnabled) { list, on -> list.filter { it.enabled && (on || !it.ai) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val runs: StateFlow<List<RunView>> = ops.observeRuns(30).flatMapLatest { runs ->

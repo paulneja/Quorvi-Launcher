@@ -47,8 +47,9 @@ import com.paulneja.quorvi.ui.design.Quorvi
 import com.paulneja.quorvi.ui.design.liquidGlass
 
 @Composable
-fun PresetChooser(current: HomePreset?, firstRun: Boolean, onChoose: (HomePreset) -> Unit, onClose: () -> Unit) {
+fun PresetChooser(current: HomePreset?, firstRun: Boolean, onChoose: (HomePreset, Boolean?) -> Unit, onClose: () -> Unit) {
     var selected by remember { mutableStateOf(current ?: HomePreset.CLEAN) }
+    var ai by remember { mutableStateOf(true) }
     if (!firstRun) BackHandler(onBack = onClose)
     Box(
         Modifier
@@ -70,9 +71,16 @@ fun PresetChooser(current: HomePreset?, firstRun: Boolean, onChoose: (HomePreset
                 }
                 Spacer(Modifier.height(12.dp))
             }
+            if (firstRun) {
+                com.paulneja.quorvi.ui.design.Panel {
+                    com.paulneja.quorvi.ui.design.SwitchRow(stringResource(R.string.ai_onboarding), ai) { ai = it }
+                    com.paulneja.quorvi.ui.design.Hint(stringResource(R.string.ai_onboarding_desc))
+                }
+                Spacer(Modifier.height(12.dp))
+            }
             Spacer(Modifier.height(8.dp))
             Box(
-                Modifier.fillMaxWidth().height(54.dp).clip(Quorvi.shapes.pill).background(Quorvi.colors.accent).clickable { onChoose(selected) },
+                Modifier.fillMaxWidth().height(54.dp).clip(Quorvi.shapes.pill).background(Quorvi.colors.accent).clickable { onChoose(selected, if (firstRun) ai else null) },
                 contentAlignment = Alignment.Center,
             ) { Text(stringResource(if (firstRun) R.string.onb_start else R.string.onb_apply), style = Quorvi.type.action.copy(fontWeight = FontWeight.SemiBold), color = Quorvi.colors.onAccent) }
             if (!firstRun) {

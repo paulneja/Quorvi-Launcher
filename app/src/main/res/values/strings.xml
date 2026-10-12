@@ -192,7 +192,7 @@
     <string name="card_ci">GitHub CI</string>
     <string name="card_ci_failing">%1$d failing</string>
     <string name="card_ci_empty">No workflow runs yet. Pick repositories in Accounts.</string>
-    <string name="agents_channel">Nexo agents working in the background</string>
+    <string name="agents_channel">Background work</string>
     <string name="agents_stop_all">Stop all</string>
     <string name="agents_working_hint">Open Operations to see each step.</string>
     <plurals name="agents_working">
@@ -386,7 +386,7 @@
     <string name="services_discord_confirm">Type the channel name again to confirm</string>
     <string name="capsule_title">Action Capsules</string>
     <string name="capsule_entry_hint">Reusable typed workflows that run without a model</string>
-    <string name="capsule_hint">A capsule is a saved list of tool steps. It is validated before it runs and asks for approval just like an agent.</string>
+    <string name="capsule_hint">A capsule is a saved list of steps. It is validated before it runs and asks for approval before changing anything.</string>
     <string name="capsule_new">New capsule</string>
     <string name="capsule_run">Run</string>
     <string name="capsule_check">Check</string>
@@ -1346,7 +1346,7 @@
     <string name="fb_part_ai">AI: providers and keys</string>
     <string name="fb_part_ai_desc">Providers, API keys, models and orchestra.</string>
     <string name="fb_part_chats">Chats and memory</string>
-    <string name="fb_part_chats_desc">Every chat (Ultra too), their attachments and what Nexo remembers about you.</string>
+    <string name="fb_part_chats_desc">Every chat, its attachments and the memory.</string>
     <string name="fb_part_agents">Capsules and agents</string>
     <string name="fb_part_agents_desc">Capsules, agent permissions and approvals, and task history.</string>
     <string name="fb_part_connections">GitHub and servers</string>
@@ -1424,4 +1424,27 @@
     <string name="job_open_chat">Open chat</string>
     <string name="job_actions_hint">Stop closes it cleanly; Kill ends it at once. Nexo is told in the chat. Pausing is silent.</string>
     <string name="job_run_title">Background job: %1$s</string>
+    <string name="ai_switch">Artificial intelligence</string>
+    <string name="ai_switch_on">Nexo, agents, voice and AI capsules are available.</string>
+    <string name="ai_switch_off">Off: Nexo does not appear anywhere. Your chats and settings stay saved.</string>
+    <string name="ai_off_stop">Stop and turn off</string>
+    <string name="ai_off_keep">Cancel</string>
+    <string name="ai_voice_reclaim">Pick Nexo as your assistant again</string>
+    <string name="ai_needed">Turn on AI to use this panel</string>
+    <string name="ai_needed_hint">AI is turned off in Settings.</string>
+    <string name="ai_open_settings">Open settings</string>
+    <string name="ai_onboarding">Use AI (Nexo)</string>
+    <string name="ai_onboarding_desc">Without AI, Quorvi is still your launcher, terminal and connections panel.</string>
+    <string name="voice_experimental">Experimental: it can sometimes behave oddly or inconsistently.</string>
+    <string name="voice_title_experimental">Voice assistant (experimental)</string>
+    <string name="capsules_empty_fixed">Create fixed-step capsules in Settings.</string>
+    <string name="capsule_new_fixed_desc">Fixed steps in JSON</string>
+    <string name="mod_group_auto">Automation</string>
+    <plurals name="ai_off_confirm">
+        <item quantity="one">%d task is running; it will be stopped.</item>
+        <item quantity="other">%d tasks are running; they will be stopped.</item>
+    </plurals>
+    <string name="mod_github_plain">GitHub</string>
+    <string name="mod_github_plain_desc">Your account, watched repositories and GitLab</string>
+    <string name="ai_off_short">AI is off</string>
 </resources>

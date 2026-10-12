@@ -372,9 +372,9 @@ class HomeRepository @Inject constructor(
         settings.markApplied(grid)
     }
 
-    private suspend fun insertTemplate(template: PageTemplate, page: Int, apps: List<AppEntry>) {
+    private suspend fun insertTemplate(template: PageTemplate, page: Int, apps: List<AppEntry>, ai: Boolean = true) {
         val grid = spec.value
-        PageTemplates.blocks(template, grid).forEach { b ->
+        PageTemplates.blocks(template, grid, ai).forEach { b ->
             val type = if (b.kind == "clock") ItemType.CLOCK else ItemType.NEXO_CARD
             dao.insert(HomeItemEntity(type = type, container = Container.PAGE, page = page, cellX = b.rect.x, cellY = b.rect.y, spanX = b.rect.w, spanY = b.rect.h, title = b.kind.takeIf { type == ItemType.NEXO_CARD }))
         }
@@ -404,7 +404,7 @@ class HomeRepository @Inject constructor(
         settings.markBentoSeeded()
     }
 
-    suspend fun applyPreset(preset: com.paulneja.quorvi.core.settings.HomePreset, apps: List<AppEntry>) = writes.withLock {
+    suspend fun applyPreset(preset: com.paulneja.quorvi.core.settings.HomePreset, apps: List<AppEntry>, ai: Boolean = true) = writes.withLock {
         val items = dao.all()
         if (!BentoSeed.isTrivial(items)) backup(items)
         items.filter { it.container == Container.PAGE }.forEach { item ->
@@ -416,7 +416,7 @@ class HomeRepository @Inject constructor(
         dao.upsertPages(pages.mapIndexed { i, t -> HomePageEntity(i, t.name) })
         val inDock = dao.all().filter { it.container == Container.DOCK }.mapNotNull { it.appKey }.toSet()
         val forApps = apps.filter { it.profile == com.paulneja.quorvi.launcher.apps.Profile.MAIN && it.key.encode() !in inDock }
-        pages.forEachIndexed { page, template -> insertTemplate(template, page, forApps) }
+        pages.forEachIndexed { page, template -> insertTemplate(template, page, forApps, ai) }
         settings.setPreset(preset)
         settings.markBentoSeeded()
     }

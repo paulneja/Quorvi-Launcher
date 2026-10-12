@@ -293,8 +293,9 @@ fun PagesSheet(
                     Text(stringResource(R.string.pages_full, canvas.spec.maxPages), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.padding(top = 14.dp, start = 4.dp))
                 } else {
                     Text(stringResource(R.string.pages_pick_template), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.padding(top = 14.dp, bottom = 8.dp, start = 4.dp))
+                    val ai = com.paulneja.quorvi.ui.design.LocalAi.current
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(listOf(PageTemplate.TODAY, PageTemplate.CONTROL, PageTemplate.NEXO, PageTemplate.TERMINAL, PageTemplate.APPS, PageTemplate.EMPTY)) { t ->
+                        items(listOf(PageTemplate.TODAY, PageTemplate.CONTROL, PageTemplate.NEXO, PageTemplate.TERMINAL, PageTemplate.APPS, PageTemplate.EMPTY).filter { ai || it != PageTemplate.NEXO }) { t ->
                             ChipButton(t.label(), t.glyph(), { adding = false; onAdd(t) })
                         }
                     }

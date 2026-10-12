@@ -459,9 +459,14 @@ fun NoteBlock(vm: BlocksViewModel, id: Long, config: String?) {
 @Composable
 fun AgentsBlock(panels: PanelsViewModel, onOpen: () -> Unit) {
     val runs by panels.runs.collectAsStateWithLifecycle()
+    val ai by panels.aiEnabled.collectAsStateWithLifecycle()
     BentoBlock(onClick = onOpen) {
         BlockHeader(Glyphs.Agent, stringResource(R.string.blk_agents)) { Glyph(Glyphs.Chevron, 16.dp, Quorvi.colors.textTertiary) }
         Spacer(Modifier.height(8.dp))
+        if (!ai) {
+            Text(stringResource(R.string.ai_off_short), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary)
+            return@BentoBlock
+        }
         if (runs.isEmpty()) Text(stringResource(R.string.agent_none), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary)
         BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
             val rows = (maxHeight / 34.dp).toInt().coerceAtLeast(1)

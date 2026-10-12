@@ -70,7 +70,13 @@ data class CapsuleEntity(
     val enabled: Boolean = true,
     val createdAt: Long,
     val lastRunAt: Long? = null,
-)
+) {
+    val ai: Boolean get() = runCatching { lenient.decodeFromString(Capsule.serializer(), json).ai }.getOrDefault(false)
+
+    private companion object {
+        val lenient = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+    }
+}
 
 @Dao
 interface CapsuleDao {

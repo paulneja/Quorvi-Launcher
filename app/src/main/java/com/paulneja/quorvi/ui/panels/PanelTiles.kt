@@ -134,6 +134,11 @@ private fun StatusLine(text: String, dot: Color? = null, color: Color = Quorvi.c
 
 @Composable
 private fun AgentTileBody(vm: PanelsViewModel, rich: Boolean) {
+    val ai by vm.aiEnabled.collectAsStateWithLifecycle()
+    if (!ai) {
+        StatusLine(stringResource(R.string.ai_off_short), color = Quorvi.colors.textSecondary)
+        return
+    }
     val runs by vm.runs.collectAsStateWithLifecycle()
     val providers by vm.providers.collectAsStateWithLifecycle()
     val summary = PanelSummaries.agent(runs, providers.isNotEmpty())

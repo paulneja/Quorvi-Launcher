@@ -166,6 +166,11 @@ private fun Chevron() = Glyph(Glyphs.Chevron, 15.dp, Quorvi.colors.textTertiary)
 
 @Composable
 private fun AgentPanel(vm: PanelsViewModel, links: PanelLinks) {
+    val ai by vm.aiEnabled.collectAsStateWithLifecycle()
+    if (!ai) {
+        AiNeeded()
+        return
+    }
     val runs by vm.runs.collectAsStateWithLifecycle()
     val providers by vm.providers.collectAsStateWithLifecycle()
     val policy by vm.policyConfig.collectAsStateWithLifecycle()
@@ -580,5 +585,15 @@ private fun QuickTile(label: String, glyph: ImageVector, on: Boolean, modifier: 
         Glyph(glyph, 20.dp, if (on) Quorvi.colors.onAccent else Quorvi.colors.text)
         Spacer(Modifier.height(5.dp))
         Text(label, style = Quorvi.type.label, color = if (on) Quorvi.colors.onAccent else Quorvi.colors.text, maxLines = 1)
+    }
+}
+
+@Composable
+fun AiNeeded() {
+    val context = LocalContext.current
+    GlassGroup {
+        Text(stringResource(R.string.ai_needed), style = Quorvi.type.body, color = Quorvi.colors.text, modifier = Modifier.padding(16.dp))
+        Text(stringResource(R.string.ai_needed_hint), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
+        com.paulneja.quorvi.ui.design.ChipButton(stringResource(R.string.ai_open_settings), Glyphs.Gear, onClick = { com.paulneja.quorvi.ui.settings.SettingsActivity.open(context) }, modifier = Modifier.padding(start = 16.dp, bottom = 16.dp))
     }
 }

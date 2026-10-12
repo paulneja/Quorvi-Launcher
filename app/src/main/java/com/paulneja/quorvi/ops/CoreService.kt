@@ -93,6 +93,8 @@ class CoreService : Service() {
         loop = scope.launch { pollConnections() }
         scope.launch { watchJobs() }
         scope.launch { runCatching { backgroundGuard.protectWorkProcess() } }
+        agents.ai.watch(scope)
+        scope.launch { watchAi() }
     }
 
     override fun onBind(intent: Intent?): IBinder = binder
@@ -172,6 +174,21 @@ class CoreService : Service() {
         runCatching { startForeground(NOTIFICATION, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC) }
     }
 
+    private suspend fun watchAi() {
+        var was: Boolean? = null
+        agents.ai.enabled.collect { on ->
+            if (!on) {
+                if (was == true) runs.killAll()
+                runCatching { jobs.stopAll() }
+                jobCount = 0
+                val manager = getSystemService(NotificationManager::class.java)
+                manager.activeNotifications.filter { it.id >= JOBS_NOTIFICATION_BASE }.forEach { manager.cancel(it.id) }
+                if (agents.engine.active.value == 0) demote()
+            }
+            was = on
+        }
+    }
+
     private suspend fun watchJobs() {
         var seen = jobs.started.value
         while (true) {
@@ -192,6 +209,11 @@ class CoreService : Service() {
     }
 
     private suspend fun settle(ended: com.paulneja.quorvi.agent.jobs.FinishedJob): Boolean {
+        if (!agents.ai.current()) {
+            jobs.saveEnded(ended)
+            jobs.current(ended)?.let { jobs.markContinued(it) }
+            return false
+        }
         if (jobs.saveEnded(ended)) notifyJob(ended)
         val job = jobs.current(ended) ?: return false
         if (!jobs.chatExists(job.chatId)) {
@@ -269,7 +291,7 @@ class CoreService : Service() {
                 }
             }
             runCatching { connections.refreshDue(visible) }
-            runCatching { agents.resumeWaiting() }
+            if (agents.ai.current()) runCatching { agents.resumeWaiting() }
             runCatching { privileged.verifyOrDegrade() }
             val connectionsDelay = runCatching { connections.nextDelay(visible) }.getOrDefault(Long.MAX_VALUE)
             val githubLeft = (githubAt + maxOf(backoff, if (active) 15_000L else if (visible) 120_000L else 600_000L) - System.currentTimeMillis()).coerceAtLeast(1_000L)

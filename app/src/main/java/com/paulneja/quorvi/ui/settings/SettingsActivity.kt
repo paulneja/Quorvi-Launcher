@@ -196,8 +196,10 @@ private fun Route(route: String, studio: StudioViewModel, catalog: AppCatalog, p
     val context = LocalContext.current
     val module = SettingsModule.of(route.substringBefore('/'))
     val sub = route.substringAfter('/', "")
+    val ai by hiltViewModel<AiViewModel>().enabled.collectAsStateWithLifecycle()
+    val aiOnly = module == SettingsModule.AI || (module == SettingsModule.AGENTS && sub in setOf("policy", "limits")) || (module == SettingsModule.GITHUB && sub == "ultra")
     when {
-        route == SettingsActivity.ROOT -> Root(studio, onOpen = { push(it.name) }, onBack = pop)
+        route == SettingsActivity.ROOT || (!ai && aiOnly) -> Root(studio, onOpen = { push(it.name) }, onBack = pop)
         module == SettingsModule.HOME || module == SettingsModule.APPS || module == SettingsModule.BACKUP -> StudioModule(studio, catalog, module, onBack = pop)
         module == SettingsModule.ABOUT -> AboutModule(onBack = pop)
         module == SettingsModule.SYSTEM -> CapabilitiesScreen(hiltViewModel<CapabilitiesViewModel>(), onBack = pop)
@@ -220,6 +222,12 @@ private fun Route(route: String, studio: StudioViewModel, catalog: AppCatalog, p
                         onChat = { com.paulneja.quorvi.ui.chat.ChatActivity.open(context, chat = com.paulneja.quorvi.agent.capsules.CapsuleLaunch.chatId(it)) },
                     )
                 }
+                !ai && sub.isEmpty() -> SubScreen(stringResource(R.string.mod_capsules), pop) {
+                    CapsulesTab(
+                        capsules, onEdit = { push("AGENTS/capsule:$it") }, onRun = { context.startActivity(OperationsActivity.run(context, it)) },
+                        onForm = { push("AGENTS/capsuleform:$it") }, onChat = { },
+                    )
+                }
                 sub.startsWith("capsuleform:") -> com.paulneja.quorvi.ui.operations.CapsuleForm(
                     capsules, sub.removePrefix("capsuleform:"), onBack = pop,
                     onJson = { replace("AGENTS/capsule:" + sub.removePrefix("capsuleform:")) },
@@ -231,7 +239,7 @@ private fun Route(route: String, studio: StudioViewModel, catalog: AppCatalog, p
         }
         module == SettingsModule.GITHUB -> when (sub) {
             "ultra" -> com.paulneja.quorvi.ui.chat.UltraScreen(hiltViewModel<ChatViewModel>(), onBack = pop)
-            else -> GitHubModule(onOpen = { push("GITHUB/$it") }, onBack = pop)
+            else -> GitHubModule(ai, onOpen = { push("GITHUB/$it") }, onBack = pop)
         }
         module == SettingsModule.SERVERS -> {
             val connections = hiltViewModel<ConnectionsViewModel>()
@@ -242,7 +250,7 @@ private fun Route(route: String, studio: StudioViewModel, catalog: AppCatalog, p
                 sub.startsWith("host:") -> HostDetail(connections, sub.removePrefix("host:"), onBack = pop, onTerminal = { push("SERVERS/term:" + sub.removePrefix("host:")) })
                 sub.startsWith("term:") -> HostTerminal(connections, sub.removePrefix("term:"), onBack = pop)
                 sub.startsWith("http:") -> HttpEdit(connections, sub.removePrefix("http:"), onBack = pop)
-                else -> ServersModule(connections, onOpen = { push("SERVERS/$it") }, onBack = pop)
+                else -> ServersModule(connections, ai, onOpen = { push("SERVERS/$it") }, onBack = pop)
             }
         }
         module == SettingsModule.TERMINAL -> TerminalModule(onBack = pop)
@@ -261,10 +269,12 @@ private enum class Group(val title: Int, val modules: List<SettingsModule>) {
 @Composable
 private fun Root(studio: StudioViewModel, onOpen: (SettingsModule) -> Unit, onBack: () -> Unit) {
     val summaries = rememberSummaries(studio)
+    val aiVm = hiltViewModel<AiViewModel>()
+    val ai by aiVm.enabled.collectAsStateWithLifecycle()
     var query by rememberSaveable { mutableStateOf("") }
     val q = query.trim().lowercase()
     val res = androidx.compose.ui.platform.LocalResources.current
-    val matches = SettingsModule.entries.filter { m ->
+    val matches = SettingsModule.entries.filter { m -> ai || m != SettingsModule.AI }.filter { m ->
         q.isEmpty() || res.getString(m.title).lowercase().contains(q) || res.getString(m.description).lowercase().contains(q) || m.keywords.any { it.contains(q) }
     }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
@@ -275,18 +285,23 @@ private fun Root(studio: StudioViewModel, onOpen: (SettingsModule) -> Unit, onBa
             Text(stringResource(R.string.settings_title), style = Quorvi.type.title.copy(fontSize = 34.sp, lineHeight = 40.sp), color = Quorvi.colors.text, modifier = Modifier.padding(start = 20.dp, top = 4.dp, bottom = 14.dp))
             SearchField(query, { query = it })
         }
+        if (q.isEmpty()) item {
+            Spacer(Modifier.height(10.dp))
+            AiSwitchPanel(aiVm)
+        }
         if (q.isNotEmpty()) {
             item { Spacer(Modifier.height(10.dp)) }
             item {
                 Panel {
                     if (matches.isEmpty()) Hint(stringResource(R.string.settings_search_none))
-                    matches.forEach { m -> ModuleRow(m, summaries[m], onClick = { onOpen(m) }) }
+                    matches.forEach { m -> ModuleRow(m, summaries[m], ai, onClick = { onOpen(m) }) }
                 }
             }
         } else {
             Group.entries.forEach { g ->
-                item { Section(stringResource(g.title)) }
-                item { Panel { g.modules.forEach { m -> ModuleRow(m, summaries[m], onClick = { onOpen(m) }) } } }
+                val shown = g.modules.filter { ai || it != SettingsModule.AI }
+                item { Section(stringResource(if (g == Group.MIND && !ai) R.string.mod_group_auto else g.title)) }
+                item { Panel { shown.forEach { m -> ModuleRow(m, summaries[m], ai, onClick = { onOpen(m) }) } } }
             }
             item { Text(stringResource(R.string.settings_version, BuildConfig.VERSION_NAME), style = Quorvi.type.caption, color = Quorvi.colors.textTertiary, modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) }
         }
@@ -322,8 +337,10 @@ private fun GlyphTile(glyph: ImageVector, size: Int = 38) {
 }
 
 @Composable
-private fun ModuleRow(module: SettingsModule, summary: String?, onClick: () -> Unit) {
-    NavRow(module.glyph, stringResource(module.title), summary ?: stringResource(module.description), onClick)
+private fun ModuleRow(module: SettingsModule, summary: String?, ai: Boolean, onClick: () -> Unit) {
+    if (module == SettingsModule.AGENTS && !ai) NavRow(Glyphs.Bolt, stringResource(R.string.mod_capsules), stringResource(R.string.capsule_entry_hint), onClick)
+    else if (module == SettingsModule.GITHUB && !ai) NavRow(module.glyph, stringResource(R.string.mod_github_plain), summary ?: stringResource(R.string.mod_github_plain_desc), onClick)
+    else NavRow(module.glyph, stringResource(module.title), summary ?: stringResource(module.description), onClick)
 }
 
 @Composable
@@ -342,7 +359,7 @@ fun NavRow(glyph: ImageVector?, title: String, subtitle: String?, onClick: () ->
 }
 
 @Composable
-private fun ModuleHeader(module: SettingsModule, onBack: () -> Unit) {
+private fun ModuleHeader(module: SettingsModule, onBack: () -> Unit, title: Int = module.title, description: Int = module.description) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(Glyphs.Back, onBack)
     }
@@ -350,16 +367,16 @@ private fun ModuleHeader(module: SettingsModule, onBack: () -> Unit) {
         GlyphTile(module.glyph, 52)
         Spacer(Modifier.width(16.dp))
         Column {
-            Text(stringResource(module.title), style = Quorvi.type.title, color = Quorvi.colors.text)
-            Text(stringResource(module.description), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary)
+            Text(stringResource(title), style = Quorvi.type.title, color = Quorvi.colors.text)
+            Text(stringResource(description), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary)
         }
     }
 }
 
 @Composable
-private fun ModuleList(module: SettingsModule, onBack: () -> Unit, content: LazyListScope.() -> Unit) {
+private fun ModuleList(module: SettingsModule, onBack: () -> Unit, title: Int = module.title, description: Int = module.description, content: LazyListScope.() -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
-        item { ModuleHeader(module, onBack) }
+        item { ModuleHeader(module, onBack, title, description) }
         content()
     }
 }
@@ -391,7 +408,7 @@ private fun AiModule(onOpen: (String) -> Unit, onBack: () -> Unit) {
                 NavRow(Glyphs.Orchestra, stringResource(R.string.orc_title), stringResource(if (orchestra.enabled) R.string.mod_ai_orchestra_on else R.string.mod_ai_orchestra_off)) { onOpen("orchestra") }
                 NavRow(Glyphs.Memory, stringResource(R.string.mem_title), stringResource(if (orchestra.memory) R.string.mod_ai_memory_on else R.string.mod_ai_memory_off)) { onOpen("memory") }
                 val voiceOn by chat.voiceEnabled.collectAsStateWithLifecycle()
-                NavRow(Glyphs.Mic, stringResource(R.string.voice_title), stringResource(if (voiceOn) R.string.voice_nav_desc else R.string.voice_nav_off)) { onOpen("voice") }
+                NavRow(Glyphs.Mic, stringResource(R.string.voice_title_experimental), stringResource(if (voiceOn) R.string.voice_nav_desc else R.string.voice_nav_off)) { onOpen("voice") }
                 NavRow(Glyphs.Compose, stringResource(R.string.mod_ai_open_chat), null) { com.paulneja.quorvi.ui.chat.ChatActivity.open(context) }
             }
         }
@@ -426,28 +443,32 @@ private fun AgentsModule(capsules: CapsuleViewModel, onOpen: (String) -> Unit, o
 }
 
 @Composable
-private fun GitHubModule(onOpen: (String) -> Unit, onBack: () -> Unit) {
+private fun GitHubModule(ai: Boolean, onOpen: (String) -> Unit, onBack: () -> Unit) {
     val accounts = hiltViewModel<AccountsViewModel>()
     val services = hiltViewModel<ServicesViewModel>()
     val login by accounts.login.collectAsStateWithLifecycle()
-    ModuleList(SettingsModule.GITHUB, onBack) {
+    ModuleList(SettingsModule.GITHUB, onBack, if (ai) SettingsModule.GITHUB.title else R.string.mod_github_plain, if (ai) SettingsModule.GITHUB.description else R.string.mod_github_plain_desc) {
         item { Section(stringResource(R.string.mod_github_account)) }
         item { GitHubAccountPanel(accounts) }
         if (login != null) {
             item { Section(stringResource(R.string.accounts_watched)) }
             item { WatchedReposPanel(accounts) }
-            item { Section("Copilot") }
-            item { CopilotPanel(accounts) }
+            if (ai) {
+                item { Section("Copilot") }
+                item { CopilotPanel(accounts) }
+            }
         }
-        item { Section(stringResource(R.string.mod_ultra)) }
-        item { Panel { NavRow(Glyphs.PullRequest, stringResource(R.string.mod_ultra_rules), stringResource(R.string.mod_ultra_rules_desc)) { onOpen("ultra") } } }
+        if (ai) {
+            item { Section(stringResource(R.string.mod_ultra)) }
+            item { Panel { NavRow(Glyphs.PullRequest, stringResource(R.string.mod_ultra_rules), stringResource(R.string.mod_ultra_rules_desc)) { onOpen("ultra") } } }
+        }
         item { Section("GitLab") }
         item { ServicesPanel(services, setOf(ServiceKind.GITLAB)) }
     }
 }
 
 @Composable
-private fun ServersModule(connections: ConnectionsViewModel, onOpen: (String) -> Unit, onBack: () -> Unit) {
+private fun ServersModule(connections: ConnectionsViewModel, ai: Boolean, onOpen: (String) -> Unit, onBack: () -> Unit) {
     val services = hiltViewModel<ServicesViewModel>()
     val hosts by connections.hostList.collectAsStateWithLifecycle()
     val http by connections.httpList.collectAsStateWithLifecycle()
@@ -460,7 +481,7 @@ private fun ServersModule(connections: ConnectionsViewModel, onOpen: (String) ->
             }
         }
         item { Section(stringResource(R.string.mod_services)) }
-        item { ServicesPanel(services, setOf(ServiceKind.HOME_ASSISTANT, ServiceKind.WORKER, ServiceKind.DISCORD)) }
+        item { ServicesPanel(services, if (ai) setOf(ServiceKind.HOME_ASSISTANT, ServiceKind.WORKER, ServiceKind.DISCORD) else setOf(ServiceKind.HOME_ASSISTANT, ServiceKind.WORKER)) }
     }
 }
 

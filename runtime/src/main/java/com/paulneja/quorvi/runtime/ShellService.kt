@@ -175,9 +175,12 @@ class ShellService : Service() {
         )
     }
 
+    // Children inherit the app's blocked SIGTERM, and destroy() only sends SIGTERM on Android.
     private fun stop(process: Process) {
         process.destroy()
-        if (!process.waitFor(2, TimeUnit.SECONDS)) process.destroyForcibly().waitFor()
+        if (process.waitFor(2, TimeUnit.SECONDS)) return
+        Regex("pid=(\\d+)").find(process.toString())?.groupValues?.get(1)?.toIntOrNull()?.let { android.os.Process.sendSignal(it, 9) }
+        process.waitFor(5, TimeUnit.SECONDS)
     }
 
     private fun resolveExecutable(name: String): String =

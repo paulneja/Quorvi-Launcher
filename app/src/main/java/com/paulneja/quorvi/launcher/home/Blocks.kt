@@ -44,8 +44,8 @@ enum class PageTemplate { HOME, TODAY, CONTROL, NEXO, APPS, EMPTY, START, MINIMA
 data class SeedBlock(val kind: String, val rect: CellRect)
 
 object PageTemplates {
-    fun blocks(template: PageTemplate, spec: GridSpec): List<SeedBlock> = when (template) {
-        PageTemplate.HOME -> home(spec)
+    fun blocks(template: PageTemplate, spec: GridSpec, ai: Boolean = true): List<SeedBlock> = when (template) {
+        PageTemplate.HOME -> home(spec, ai)
         PageTemplate.TODAY -> flow(spec, listOf("today" to listOf(BlockSize.L), "media" to listOf(BlockSize.M), "notifications" to listOf(BlockSize.M), "apps" to listOf(BlockSize.L, BlockSize.W), "photos" to listOf(BlockSize.L)))
         PageTemplate.CONTROL -> flow(spec, listOf("toggles" to listOf(BlockSize.L), "system" to listOf(BlockSize.M), "timer" to listOf(BlockSize.M), "capsules" to listOf(BlockSize.W), "contacts" to listOf(BlockSize.S), "note" to listOf(BlockSize.S)))
         PageTemplate.NEXO -> flow(spec, listOf("agents" to listOf(BlockSize.L), "ci" to listOf(BlockSize.M), "ha" to listOf(BlockSize.M), "hosts" to listOf(BlockSize.W), "http" to listOf(BlockSize.W)))
@@ -54,12 +54,12 @@ object PageTemplates {
         PageTemplate.MINIMAL -> listOf(SeedBlock("clock", CellRect(0, 0, spec.columns, 2)), SeedBlock("favlist", CellRect(0, 2, spec.columns, spec.rows - 2)))
     }
 
-    private fun home(spec: GridSpec): List<SeedBlock> {
+    private fun home(spec: GridSpec, ai: Boolean): List<SeedBlock> {
         val half = spec.columns / 2
         val out = mutableListOf(SeedBlock("clock", CellRect(0, 0, spec.columns, 2)))
         val top = spec.rows - 2
         if (top < 2) return out
-        listOf("panel:agent", "panel:github", "panel:network", "panel:system").forEachIndexed { i, kind ->
+        listOf(if (ai) "panel:agent" else "panel:shell", "panel:github", "panel:network", "panel:system").forEachIndexed { i, kind ->
             out += SeedBlock(kind, CellRect((i % 2) * half, top + i / 2, half, 1))
         }
         return out

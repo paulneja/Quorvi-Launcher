@@ -14,8 +14,9 @@ An Android launcher that doubles as an operations console and a home for autonom
 - **Connections:** GitHub (Actions, PRs, issues, pending items), SSH with pinned host keys, Docker, HTTP/HTTPS/TCP monitors, Home Assistant, GitLab, Discord webhooks and a remote Linux worker.
 - **Capsules:** saved AI instructions or fixed-step automations with schedules and event triggers.
 - **Device control:** opening apps, installing APKs agents build (through Shizuku) and optional root, Shizuku and ADB backends with granular levels. Agents never touch the screen.
-- **Voice:** an optional system assistant that hears and speaks through your own AI provider.
+- **Voice (experimental):** an optional system assistant that hears and speaks through your own AI provider.
 - **Backup:** scene export plus password-sealed full backups (AES-256-GCM).
+- **AI is optional:** one switch in Settings turns Nexo off entirely; the launcher, terminal and connections keep working.
 - English and Spanish.
 
 ## Building

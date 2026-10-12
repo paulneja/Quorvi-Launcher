@@ -213,7 +213,8 @@ fun HostDetail(vm: ConnectionsViewModel, id: String, onBack: () -> Unit, onTermi
                             h.healthAt?.let { Hint(DateUtils.getRelativeTimeSpanString(it).toString()) }
                         }
                         ActionRow(stringResource(R.string.hosts_terminal), null, onClick = onTerminal)
-                        SwitchRow(stringResource(R.string.hosts_agent_access), h.agentAccess) { vm.setAgentAccess(h, it) }
+                        val ai by vm.aiEnabled.collectAsStateWithLifecycle()
+                        if (ai) SwitchRow(stringResource(R.string.hosts_agent_access), h.agentAccess) { vm.setAgentAccess(h, it) }
                     }
                 }
                 if (containers.isNotEmpty()) {

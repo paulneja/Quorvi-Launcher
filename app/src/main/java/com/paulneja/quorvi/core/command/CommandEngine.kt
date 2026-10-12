@@ -39,6 +39,7 @@ class CommandEngine @Inject constructor(
     private val settings: QuorviSettings,
     private val dao: CommandDao,
     private val capsules: com.paulneja.quorvi.agent.capsules.CapsuleDao,
+    private val ai: com.paulneja.quorvi.agent.engine.AiSwitch,
     scope: CoroutineScope,
 ) {
     @Volatile private var shortcutIndex: List<Pair<AppEntry, AppShortcut>> = emptyList()
@@ -84,6 +85,7 @@ class CommandEngine @Inject constructor(
         val now = System.currentTimeMillis()
         val hidden = settings.hiddenApps.first()
         val apps = catalog.apps.filterNotNull().first().filter { it.profile != Profile.PRIVATE && it.key.encode() !in hidden }
+        val aiOn = ai.current()
         buildList {
             apps.forEach { app ->
                 val base = AppSearch.score(app.label, q)
@@ -99,9 +101,9 @@ class CommandEngine @Inject constructor(
                     add(CommandResult(key, CommandKind.SHORTCUT, s.label, app.label, boost(key, base - 10, now), CommandAction.LaunchShortcut(s), app = app, image = s.icon))
                 }
             }
-            nexoActions(q).forEach { add(it) }
+            nexoActions(q, aiOn).forEach { add(it) }
 
-            capsules.observe().first().filter { it.enabled }.forEach { c ->
+            capsules.observe().first().filter { it.enabled && (aiOn || !it.ai) }.forEach { c ->
                 val base = AppSearch.score(c.name, q)
                 if (base > 0) add(CommandResult("capsule:" + c.id, CommandKind.QUORVI, c.name, context.getString(com.paulneja.quorvi.R.string.command_capsule), boost("capsule:" + c.id, base + 5, now), CommandAction.Capsule(c.id), glyph = CommandGlyph.AGENT))
             }
@@ -121,7 +123,7 @@ class CommandEngine @Inject constructor(
                 val text = Calculator.short(value) + " " + unit
                 add(CommandResult("unit", CommandKind.CALC, text, q, 120, CommandAction.Copy(text), glyph = CommandGlyph.CALC))
             }
-            agent(q)?.let { add(it) }
+            if (aiOn) agent(q)?.let { add(it) }
             web(q)?.let { add(it) }
         }.let { CommandRanking.merge(it) }
     }
@@ -137,7 +139,7 @@ class CommandEngine @Inject constructor(
 
     private fun boost(key: String, base: Int, now: Long): Int = usage[key].let { CommandRanking.boost(base, it?.uses ?: 0, it?.lastUsed, now) }
 
-    private fun nexoActions(q: String): List<CommandResult> {
+    private fun nexoActions(q: String, aiOn: Boolean): List<CommandResult> {
         val items = listOf(
             Triple(QuorviAction.EDIT, R.string.command_edit_home, listOf("editar", "edit", "modo edicion", "personalizar")),
             Triple(QuorviAction.STUDIO, R.string.menu_studio, listOf("studio", "apariencia", "tema", "theme", "acento", "iconos")),
@@ -145,13 +147,13 @@ class CommandEngine @Inject constructor(
             Triple(QuorviAction.WIDGETS, R.string.menu_widgets, listOf("widget", "widgets")),
             Triple(QuorviAction.HIDDEN_APPS, R.string.studio_hidden, listOf("ocultas", "hidden", "apps ocultas")),
             Triple(QuorviAction.CONTROL, R.string.control_title, listOf("control", "controles", "panel", "linterna", "volumen", "brillo", "notificaciones", "no molestar", "musica")),
-            Triple(QuorviAction.ACCOUNTS, R.string.accounts_title, listOf("cuenta", "cuentas", "login", "iniciar sesion", "sesion", "github", "copilot", "conectar", "servicios", "home assistant", "gitlab", "proveedor", "modelo", "ia")),
+            Triple(QuorviAction.ACCOUNTS, R.string.accounts_title, listOf("cuenta", "cuentas", "login", "iniciar sesion", "sesion", "github", "copilot", "conectar", "servicios", "home assistant", "gitlab") + if (aiOn) listOf("proveedor", "modelo", "ia") else emptyList()),
             Triple(QuorviAction.AGENTS, R.string.ops_agents, listOf("agente", "agentes", "agent", "tareas", "runs", "capsule", "capsulas")),
             Triple(QuorviAction.SHELL, R.string.shell_title, listOf("terminal", "shell", "consola", "bash", "nexo shell", "linux")),
             Triple(QuorviAction.CAPABILITIES, R.string.cap_title, listOf("capacidades", "root", "shizuku", "adb", "pantalla", "accesibilidad", "permisos", "privilegios", "control de pantalla")),
             Triple(QuorviAction.OPERATIONS, R.string.ops_title, listOf("operations", "operaciones", "ci", "actions", "runs", "workflows", "builds")),
         )
-        return items.mapNotNull { (id, title, keywords) ->
+        return items.filter { aiOn || it.first != QuorviAction.AGENTS }.mapNotNull { (id, title, keywords) ->
             val label = context.getString(title)
             val base = maxOf(AppSearch.score(label, q), keywords.maxOf { AppSearch.score(it, q) })
             if (base < 60) null else CommandResult("nexo:" + id.name, CommandKind.QUORVI, label, "Quorvi", base, CommandAction.Quorvi(id), glyph = CommandGlyph.QUORVI)

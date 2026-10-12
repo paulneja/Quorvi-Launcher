@@ -146,8 +146,9 @@ class Agents @Inject constructor(
     orchestra: com.paulneja.quorvi.agent.orchestra.OrchestraStore,
     ultra: com.paulneja.quorvi.agent.ultra.UltraStore,
     limits: LimitsStore,
+    val ai: AiSwitch,
 ) {
-    val engine = AgentEngine(dao, models, toolbox, scope, com.paulneja.quorvi.agent.policy.PolicyService(store, device), chats = chats, orchestra = orchestra::current, ultra = ultra::current, texts = AndroidEngineTexts(context), tuning = limits::current)
+    val engine = AgentEngine(dao, models, toolbox, scope, com.paulneja.quorvi.agent.policy.PolicyService(store, device), chats = chats, orchestra = orchestra::current, ultra = ultra::current, texts = AndroidEngineTexts(context), tuning = limits::current, aiOn = ai::now)
 
     suspend fun resumeWaiting() {
         val waiting = dao.runsIn(com.paulneja.quorvi.ops.RunState.WAITING_CAPABILITY.name).filter { it.error?.startsWith(AgentEngine.WAIT_PREFIX) == true }

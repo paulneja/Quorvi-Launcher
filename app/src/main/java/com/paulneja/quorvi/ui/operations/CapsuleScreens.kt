@@ -65,8 +65,10 @@ class CapsuleViewModel @Inject constructor(
     private val dao: CapsuleDao,
     private val toolbox: RuntimeToolBox,
     private val core: CoreClient,
+    ai: com.paulneja.quorvi.agent.engine.AiSwitch,
 ) : ViewModel() {
     val capsules = dao.observe().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val aiEnabled = ai.enabled.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     private val json = Json { prettyPrint = true }
 
     suspend fun compiler() = CapsuleCompiler(toolbox.allTools().associateBy { it.name })
@@ -101,7 +103,7 @@ class CapsuleViewModel @Inject constructor(
         }
     }
 
-    fun isAi(e: CapsuleEntity): Boolean = e.json.contains("\"prompt\"")
+    fun isAi(e: CapsuleEntity): Boolean = e.ai
 
     fun trigger(e: CapsuleEntity): com.paulneja.quorvi.agent.capsules.CapsuleTrigger =
         runCatching { Json { ignoreUnknownKeys = true }.decodeFromString(com.paulneja.quorvi.agent.capsules.Capsule.serializer(), e.json).trigger }.getOrDefault(com.paulneja.quorvi.agent.capsules.CapsuleTrigger())
@@ -110,12 +112,14 @@ class CapsuleViewModel @Inject constructor(
 
 @Composable
 fun CapsulesTab(vm: CapsuleViewModel, onEdit: (String) -> Unit, onRun: (String) -> Unit, onForm: ((String) -> Unit)? = null, onChat: ((String) -> Unit)? = null) {
-    val capsules by vm.capsules.collectAsStateWithLifecycle()
+    val all by vm.capsules.collectAsStateWithLifecycle()
+    val aiOn by vm.aiEnabled.collectAsStateWithLifecycle()
+    val capsules = if (aiOn) all else all.filterNot { vm.isAi(it) }
     LazyColumn(contentPadding = PaddingValues(12.dp)) {
         item {
             Panel {
-                Hint(stringResource(R.string.capsule_hint_ai))
-                ActionRow(stringResource(R.string.capsule_new), stringResource(R.string.capsule_new_desc)) { onForm?.invoke("new") ?: onEdit("new") }
+                Hint(stringResource(if (aiOn) R.string.capsule_hint_ai else R.string.capsule_hint))
+                ActionRow(stringResource(R.string.capsule_new), stringResource(if (aiOn) R.string.capsule_new_desc else R.string.capsule_new_fixed_desc)) { if (aiOn) onForm?.invoke("new") ?: onEdit("new") else onEdit("new") }
             }
         }
         items(capsules, key = { it.id }) { c ->

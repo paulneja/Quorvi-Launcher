@@ -3,6 +3,7 @@ package com.paulneja.quorvi.voice
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Build
 
 object VoiceFeature {
     private val components = listOf(AssistantActivity::class.java, NexoVoiceService::class.java, NexoSessionService::class.java, NexoRecognitionService::class.java)
@@ -13,6 +14,14 @@ object VoiceFeature {
         components.forEach { c ->
             val name = ComponentName(context, c)
             if (pm.getComponentEnabledSetting(name) != state) runCatching { pm.setComponentEnabledSetting(name, state, PackageManager.DONT_KILL_APP) }
+        }
+    }
+
+    fun applyAi(context: Context, aiOn: Boolean, voiceOn: Boolean) {
+        apply(context, aiOn && voiceOn)
+        val mic = android.Manifest.permission.RECORD_AUDIO
+        if (!aiOn && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && context.checkSelfPermission(mic) == PackageManager.PERMISSION_GRANTED) {
+            runCatching { context.revokeSelfPermissionsOnKill(listOf(mic)) }
         }
     }
 }

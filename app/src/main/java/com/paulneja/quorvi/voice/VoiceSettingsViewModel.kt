@@ -61,7 +61,6 @@ class VoiceSettingsViewModel @Inject constructor(
 
     fun setEnabled(on: Boolean) = viewModelScope.launch {
         settings.setVoice { it.copy(enabled = on) }
-        VoiceFeature.apply(context, on)
         if (!on) player.stop()
     }
 

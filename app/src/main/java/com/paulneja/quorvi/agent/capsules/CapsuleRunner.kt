@@ -13,6 +13,7 @@ class CapsuleRunner @Inject constructor(private val dao: CapsuleDao, private val
     suspend fun run(capsuleId: String, reason: String? = null): String {
         val entity = dao.get(capsuleId) ?: return ""
         val capsule = runCatching { json.decodeFromString(Capsule.serializer(), entity.json) }.getOrNull() ?: return ""
+        if (capsule.ai && !agents.ai.current()) return ""
         dao.markRun(capsuleId, System.currentTimeMillis())
 
         if (capsule.ai) {

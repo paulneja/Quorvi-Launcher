@@ -69,6 +69,14 @@ Anything not listed here as verified should be treated as unverified. Test devic
 - NOT VERIFIED on the phone: verified on the emulator only (start, card, notification, automatic follow-up with the app in the background), for 20-second jobs.
 - NOT VERIFIED: jobs lasting hours with the screen off, and whether the phone's battery manager kills `:shell` meanwhile. Jobs are children of the `:shell` process; if Android kills it or the phone restarts, the job dies and is reported as interrupted.
 
+**AI switch**
+- NOT VERIFIED on the phone.
+- The microphone permission is only released when the app process dies (`revokeSelfPermissionsOnKill`), and only on Android 13+.
+- After turning AI back on, Quorvi has to be picked again as the assistant in Android settings.
+
+**Voice**
+- Experimental: it can behave oddly or inconsistently; the settings screen says so.
+
 **Device control**
 - Real root, Shizuku and ADB-over-TCP execution (gating, levels and hooks are tested).
 - Termux `RUN_COMMAND`: Termux isn't installed on the test emulator.
