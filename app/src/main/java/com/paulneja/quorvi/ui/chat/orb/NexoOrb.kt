@@ -18,20 +18,19 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.graphicsLayer
 import com.paulneja.quorvi.ui.chat.LegacyOrb
 import com.paulneja.quorvi.ui.design.Quorvi
 
 @Composable
-fun NexoOrb(size: Dp, mode: OrbMode, state: OrbState = OrbState.IDLE, level: Float = 0f, modifier: Modifier = Modifier, animate: Boolean = true) {
-    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) ShaderOrb(size, mode, state, level, modifier, animate)
+fun NexoOrb(size: Dp, mode: OrbMode, state: OrbState = OrbState.IDLE, level: Float = 0f, modifier: Modifier = Modifier, animate: Boolean = true, phase: (() -> Float)? = null, instant: Boolean = false) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) ShaderOrb(size, mode, state, level, modifier, animate, phase, instant)
     else LegacyOrb(size, mode == OrbMode.ULTRA, state == OrbState.THINKING || state == OrbState.WORKING, modifier)
 }
 
 @androidx.annotation.RequiresApi(android.os.Build.VERSION_CODES.TIRAMISU)
 @Composable
-private fun ShaderOrb(size: Dp, mode: OrbMode, state: OrbState, level: Float, modifier: Modifier, animate: Boolean) {
+private fun ShaderOrb(size: Dp, mode: OrbMode, state: OrbState, level: Float, modifier: Modifier, animate: Boolean, phase: (() -> Float)?, instant: Boolean) {
     val pearl = remember { OrbShaders.pearl() }
     val star = remember { OrbShaders.singularity() }
     val nova = remember { OrbShaders.nova() }
@@ -46,18 +45,16 @@ private fun ShaderOrb(size: Dp, mode: OrbMode, state: OrbState, level: Float, mo
     val target = if (mode == OrbMode.ULTRA) 1f else 0f
     val progress = remember { androidx.compose.animation.core.Animatable(target) }
     val haptics = com.paulneja.quorvi.ui.design.rememberHaptics()
-    LaunchedEffect(target, motion) {
-        if (!motion) { progress.snapTo(target); return@LaunchedEffect }
-        if (target == 1f) {
-            var fired = progress.value >= 0.5f
-            progress.animateTo(1f, tween(((1f - progress.value) * FORWARD_MS).toInt(), easing = androidx.compose.animation.core.LinearEasing)) {
-                if (!fired && value >= 0.5f) { fired = true; haptics.pickup() }
-            }
-        } else {
-            progress.animateTo(0f, tween((progress.value * BACK_MS).toInt(), easing = androidx.compose.animation.core.LinearEasing))
+    LaunchedEffect(target, motion, instant) {
+        if (phase != null) return@LaunchedEffect
+        if (!motion || instant) { progress.snapTo(target); return@LaunchedEffect }
+        val ms = (kotlin.math.abs(target - progress.value) * if (target == 1f) FORWARD_MS else BACK_MS).toInt().coerceAtLeast(1)
+        var fired = progress.value >= 0.5f
+        progress.animateTo(target, tween(ms, easing = com.paulneja.quorvi.ui.chat.horizon.HorizonEasing)) {
+            if (!fired && target == 1f && value >= 0.5f) { fired = true; haptics.pickup() }
         }
     }
-    val p = progress.value
+    val pOf: () -> Float = phase ?: { progress.value }
     val listen by animateFloatAsState(if (state == OrbState.LISTENING) 1f else 0f, soft, label = "listen")
     val think by animateFloatAsState(if (state == OrbState.THINKING) 1f else 0f, soft, label = "think")
     val speak by animateFloatAsState(if (state == OrbState.SPEAKING) 1f else 0f, soft, label = "speak")
@@ -73,22 +70,17 @@ private fun ShaderOrb(size: Dp, mode: OrbMode, state: OrbState, level: Float, mo
     val tilt by rememberTilt(enabled = live && size.value >= 64f)
     val accent = Quorvi.colors.accent
     val detail = OrbStates.detail(size.value)
-    val transitioning = p > 0.005f && p < 0.995f
-    val time2 = time
-    val density = androidx.compose.ui.platform.LocalDensity.current
     Canvas(
         modifier.size(size).graphicsLayer {
-            if (!transitioning) return@graphicsLayer
-
-            val amp = with(density) { 3.dp.toPx() } * bell(p, 0.12f, 0.50f).let { it * it }
-            val tt = time2.floatValue
-            translationX = kotlin.math.sin(tt * 97f) * amp
-            translationY = kotlin.math.cos(tt * 83f) * amp
-            val s = 1f + 0.16f * bell(p, 0.50f, 0.72f)
+            val p = pOf()
+            if (p <= 0.005f || p >= 0.995f) { scaleX = 1f; scaleY = 1f; return@graphicsLayer }
+            val s = 1f - 0.10f * bell(p, 0.20f, 0.50f) + 0.12f * bell(p, 0.50f, 0.80f)
             scaleX = s; scaleY = s
         },
     ) {
         val t = time.floatValue
+        val p = pOf()
+        val transitioning = p > 0.005f && p < 0.995f
         fun RuntimeShader.feed(intro: Float, agitation: Float = 0f) {
             setFloatUniform("size", this@Canvas.size.width, this@Canvas.size.height)
             setFloatUniform("time", t)
@@ -103,12 +95,12 @@ private fun ShaderOrb(size: Dp, mode: OrbMode, state: OrbState, level: Float, mo
             setFloatUniform("intro", intro)
         }
 
-        val pearlIntro = 1f - smooth(0.14f, 0.50f, p)
-        val starIntro = smooth(0.52f, 0.97f, p)
-        if (pearlIntro > 0.001f) { pearl.feed(pearlIntro, agitation = smooth(0f, 0.14f, p)); drawRect(ShaderBrush(pearl)) }
+        val pearlIntro = 1f - smooth(0.06f, 0.47f, p)
+        val starIntro = smooth(0.53f, 0.96f, p)
+        if (pearlIntro > 0.001f) { pearl.feed(pearlIntro, agitation = smooth(0f, 0.25f, p)); drawRect(ShaderBrush(pearl)) }
         if (starIntro > 0.001f) { star.feed(starIntro); drawRect(ShaderBrush(star)) }
         if (transitioning && nova != null) {
-            val ext = minOf(this.size.width * 1.7f, ((with(density) { 900.dp.toPx() }) - this.size.width) / 2f).coerceAtLeast(0f)
+            val ext = this.size.width * 0.9f
             val w = this.size.width + 2 * ext
             val h = this.size.height + 2 * ext
             nova.setFloatUniform("size", w, h)
@@ -133,5 +125,5 @@ private fun bell(x: Float, a: Float, b: Float): Float {
     return kotlin.math.sin(t * Math.PI.toFloat())
 }
 
-private const val FORWARD_MS = 2600f
-private const val BACK_MS = 1500f
+private const val FORWARD_MS = com.paulneja.quorvi.ui.chat.horizon.HorizonState.FORWARD_MS
+private const val BACK_MS = com.paulneja.quorvi.ui.chat.horizon.HorizonState.BACK_MS

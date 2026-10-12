@@ -91,10 +91,25 @@ fun ModeSwitch(mode: String, onMode: (String) -> Unit) {
         Modifier.width(260.dp).height(44.dp).clip(RoundedCornerShape(22.dp)).background(Color.White.copy(alpha = 0.07f)).padding(4.dp),
     ) {
         val half = maxWidth / 2
-        val x by animateDpAsState(if (ultra) half else 0.dp, spring(dampingRatio = 0.62f, stiffness = 420f), label = "thumb")
+        val lead = spring<androidx.compose.ui.unit.Dp>(dampingRatio = 0.7f, stiffness = 900f)
+        val lag = spring<androidx.compose.ui.unit.Dp>(dampingRatio = 0.6f, stiffness = 210f)
+        val left by animateDpAsState(if (ultra) half else 0.dp, if (ultra) lag else lead, label = "left")
+        val right by animateDpAsState(if (ultra) maxWidth else half, if (ultra) lead else lag, label = "right")
+        val width = (right - left).coerceAtLeast(half * 0.6f)
+        val stretch = ((width - half) / half).coerceIn(0f, 1f)
+        val ultraGlow by androidx.compose.animation.core.animateFloatAsState(if (ultra) 1f else 0f, androidx.compose.animation.core.tween(420), label = "glow")
         Box(
-            Modifier.offset(x = x).width(half).fillMaxHeight().clip(RoundedCornerShape(18.dp))
-                .background(if (ultra) Brush.linearGradient(listOf(Color(0xFF7B5CFF), Quorvi.colors.accent)) else Brush.linearGradient(listOf(Color.White.copy(alpha = 0.16f), Color.White.copy(alpha = 0.10f)))),
+            Modifier.offset(x = left).width(width).fillMaxHeight()
+                .graphicsLayer { scaleY = 1f - 0.16f * stretch }
+                .clip(RoundedCornerShape(18.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            androidx.compose.ui.graphics.lerp(Color.White.copy(alpha = 0.16f), Color(0xFF7B5CFF), ultraGlow),
+                            androidx.compose.ui.graphics.lerp(Color.White.copy(alpha = 0.10f), Color(0xFFFF5FA2), ultraGlow),
+                        ),
+                    ),
+                ),
         )
         Row(Modifier.fillMaxSize()) {
             listOf(ChatMode.CHAT to R.string.mode_chat, ChatMode.ULTRA to R.string.mode_ultra).forEach { (m, label) ->

@@ -40,10 +40,10 @@ private val ChatViolet = Color(0xFFB98CFF)
 private val ChatCyan = Color(0xFF5CE1E6)
 
 @Composable
-fun ModeOrb(size: Dp, ultra: Boolean, busy: Boolean = false, modifier: Modifier = Modifier) =
+fun ModeOrb(size: Dp, ultra: Boolean, busy: Boolean = false, modifier: Modifier = Modifier, instant: Boolean = false) =
     com.paulneja.quorvi.ui.chat.orb.NexoOrb(
         size, if (ultra) com.paulneja.quorvi.ui.chat.orb.OrbMode.ULTRA else com.paulneja.quorvi.ui.chat.orb.OrbMode.CHAT,
-        if (busy) com.paulneja.quorvi.ui.chat.orb.OrbState.THINKING else com.paulneja.quorvi.ui.chat.orb.OrbState.IDLE, modifier = modifier,
+        if (busy) com.paulneja.quorvi.ui.chat.orb.OrbState.THINKING else com.paulneja.quorvi.ui.chat.orb.OrbState.IDLE, modifier = modifier, instant = instant,
     )
 
 @Composable

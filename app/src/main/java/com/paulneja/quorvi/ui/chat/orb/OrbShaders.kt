@@ -251,71 +251,42 @@ half4 main(float2 fc) {
     float3 orange = float3(1.0, 0.64, 0.30);
     float3 col = float3(0.0);
 
-    float infall = bell(p, 0.04, 0.52);
+    float infall = bell(p, 0.02, 0.50);
     if (infall > 0.0) {
-        float n = 40.0;
+        float n = 36.0;
         float kc = floor((ang + 3.14159) / 6.2831 * n);
         for (int i = 0; i < 3; i++) {
             float fi = mod(kc + float(i) - 1.0 + n, n);
-            float speed = 0.8 + h1(fi + 7.0) * 1.4;
-            float s = fract(h1(fi + 3.0) + p * speed * 1.6);
-            float rs = 3.6 * (1.0 - s) + 0.15;
+            float speed = 0.9 + h1(fi + 7.0) * 1.3;
+            float s = fract(h1(fi + 3.0) + p * speed * 2.2);
+            float rs = 2.2 * (1.0 - s) + 0.12;
             float base = (fi + 0.5) / n * 6.2831 - 3.14159 + (h1(fi) - 0.5) * 0.08;
-            float a = base + 0.06 / (rs + 0.25) * p;
+            float a = base + 0.5 / (rs + 0.3) * p;
             float da = abs(mod(ang - a + 3.14159, 6.2831) - 3.14159);
-            float streak = exp(-pow(da * r * 28.0, 2.0)) * exp(-pow((r - rs) * 2.2, 2.0)) * smoothstep(0.1, 0.6, r);
-            col += mix(cyan, violet, h1(fi + 11.0)) * streak * (0.4 + 1.2 * s);
+            float streak = exp(-pow(da * r * 24.0, 2.0)) * exp(-pow((r - rs) * 3.0, 2.0)) * smoothstep(0.08, 0.4, r);
+            col += mix(cyan, violet, h1(fi + 11.0)) * streak * (0.5 + 1.1 * s);
         }
-        float well = 0.5 + 0.5 * sin(r * 9.0 + p * 40.0);
-        col += violet * pow(well, 8.0) * exp(-r * 0.9) * 0.22 * infall * smoothstep(0.3, 1.2, r);
         col *= infall;
     }
 
-    float flash = bell(p, 0.44, 0.60);
-    col += float3(1.0) * exp(-r * (6.0 - 3.0 * flash)) * flash * 2.4;
-    col += float3(exp(-pow((r - 0.55 * flash) * 7.0, 2.0)), exp(-pow((r - 0.50 * flash) * 7.0, 2.0)), exp(-pow((r - 0.45 * flash) * 7.0, 2.0))) * flash;
+    float flash = bell(p, 0.45, 0.57);
+    col += float3(1.0) * exp(-r * (7.0 - 4.0 * flash)) * flash * 2.6;
+    col += float3(exp(-pow((r - 0.42 * flash) * 9.0, 2.0)), exp(-pow((r - 0.38 * flash) * 9.0, 2.0)), exp(-pow((r - 0.34 * flash) * 9.0, 2.0))) * flash * 0.9;
 
-    col += mix(violet, pink, 0.5) * 0.35 * bell(p, 0.47, 0.66) * exp(-r * 0.45);
-
-    float sw = clamp((p - 0.50) / 0.45, 0.0, 1.0);
-    if (sw > 0.0) {
+    float sw = clamp((p - 0.50) / 0.24, 0.0, 1.0);
+    if (sw > 0.0 && sw < 1.0) {
         float e = 1.0 - pow(1.0 - sw, 3.0);
-        float rs = 0.2 + 4.2 * e;
-        float fade = pow(1.0 - sw, 1.4);
-        float w = 0.035 + 0.07 * sw;
+        float rs = 0.15 + 1.15 * e;
+        float fade = pow(1.0 - sw, 1.6);
+        float w = 0.04 + 0.05 * sw;
         float front = exp(-pow((r - rs) / w, 2.0));
-        float outer = exp(-pow((r - rs - w * 0.9) / (w * 0.55), 2.0));
-        float inner = exp(-pow((r - rs + w * 0.9) / (w * 0.55), 2.0));
-        col += (float3(1.0, 0.92, 0.97) * front * 1.4 + pink * outer * 0.7 + cyan * inner * 0.55) * fade;
-        col += mix(violet, pink, 0.35) * smoothstep(rs, rs * 0.55, r) * smoothstep(rs * 0.2, rs * 0.7, r) * fade * 0.28;
-        float rs2 = 0.1 + 2.8 * (1.0 - pow(1.0 - clamp((p - 0.56) / 0.4, 0.0, 1.0), 2.0));
-        col += mix(pink, violet, 0.5) * exp(-pow((r - rs2) / (0.25 + 0.3 * sw), 2.0)) * fade * 0.55;
-        float nd = 34.0;
-        float kd = floor((ang + 3.14159) / 6.2831 * nd);
-        for (int i = 0; i < 3; i++) {
-            float fi = mod(kd + float(i) - 1.0 + nd, nd);
-            float a = (fi + 0.5) / nd * 6.2831 - 3.14159 + (h1(fi + 21.0) - 0.5) * 0.1;
-            float v = 1.0 + h1(fi + 5.0) * 3.0;
-            float rd = 0.2 + v * (1.0 - pow(1.0 - sw, 2.2));
-            float da = abs(mod(ang - a + 3.14159, 6.2831) - 3.14159);
-            float trail = exp(-pow(da * r * 26.0, 2.0)) * smoothstep(rd - 0.6 * (1.0 - sw), rd, r) * smoothstep(rd + 0.06, rd, r);
-            col += mix(orange, pink, h1(fi + 9.0)) * trail * fade * 2.6;
-        }
+        float outer = exp(-pow((r - rs - w) / (w * 0.6), 2.0));
+        float inner = exp(-pow((r - rs + w) / (w * 0.6), 2.0));
+        col += (float3(1.0, 0.94, 0.98) * front * 1.2 + pink * outer * 0.8 + orange * inner * 0.5) * fade;
     }
+    col += mix(violet, pink, 0.5) * 0.30 * bell(p, 0.46, 0.72) * exp(-r * 0.9);
 
-    float jet = bell(p, 0.50, 0.92);
-    if (jet > 0.0) {
-        float len = 0.4 + 3.4 * clamp((p - 0.5) / 0.3, 0.0, 1.0);
-        float ay = abs(uv.y);
-        float width = 0.07 + 0.18 * ay / len;
-        float core = exp(-pow(uv.x / (width * 0.35), 2.0));
-        float sheath = exp(-pow(uv.x / width, 2.0));
-        float along = smoothstep(len, len * 0.55, ay) * smoothstep(0.05, 0.3, ay);
-        float knots = 0.6 + 0.4 * sin(ay * 12.0 - time * 34.0);
-        col += (float3(1.0, 0.95, 1.0) * core * 1.8 + mix(cyan, pink, clamp(ay / len, 0.0, 1.0)) * sheath) * along * knots * jet * 1.6;
-    }
-
-    float edge = smoothstep(min(size.x, size.y) * 0.5 / orbR, min(size.x, size.y) * 0.5 / orbR * 0.82, r);
+    float edge = smoothstep(min(size.x, size.y) * 0.5 / orbR, min(size.x, size.y) * 0.5 / orbR * 0.75, r);
     col *= edge;
     float a = clamp(max(col.r, max(col.g, col.b)), 0.0, 1.0);
     return half4(half3(min(col, float3(a))), half(a));

@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +45,8 @@ import com.paulneja.quorvi.ui.chat.ModeOrb
 import com.paulneja.quorvi.ui.design.Glyph
 import com.paulneja.quorvi.ui.design.Glyphs
 import com.paulneja.quorvi.ui.design.Quorvi
+import com.paulneja.quorvi.ui.chat.horizon.horizonAnchor
+import com.paulneja.quorvi.ui.chat.horizon.horizonFrame
 
 @Composable
 fun VoiceModeOverlay(vm: AssistantViewModel, ultra: Boolean, onMic: () -> Unit, onClose: () -> Unit) {
@@ -51,8 +54,16 @@ fun VoiceModeOverlay(vm: AssistantViewModel, ultra: Boolean, onMic: () -> Unit, 
     val level by vm.level.collectAsStateWithLifecycle()
     val none = remember { MutableInteractionSource() }
     val phase = ui.phase
+    val horizon = com.paulneja.quorvi.ui.chat.horizon.rememberHorizon(ultra)
+    LaunchedEffect(ultra) { horizon.snap(ultra) }
+    Box(Modifier.fillMaxSize().horizonFrame(horizon)) {
+    com.paulneja.quorvi.ui.chat.horizon.NexoField(
+        horizon, busy = phase == AssistantViewModel.Phase.THINKING || phase == AssistantViewModel.Phase.TRANSCRIBING, modifier = Modifier.fillMaxSize(),
+        level = level, listening = phase == AssistantViewModel.Phase.LISTENING, speaking = phase == AssistantViewModel.Phase.SPEAKING,
+        top = Color(0xFF05060A), bottom = Color(0xFF0B0D14),
+    )
     Box(
-        Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF05060A), Color(0xFF0B0D14), Color(0xFF05060A))))
+        Modifier.fillMaxSize()
             .clickable(interactionSource = none, indication = null) {}
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
@@ -72,6 +83,7 @@ fun VoiceModeOverlay(vm: AssistantViewModel, ultra: Boolean, onMic: () -> Unit, 
                     190.dp,
                     if (ultra) com.paulneja.quorvi.ui.chat.orb.OrbMode.ULTRA else com.paulneja.quorvi.ui.chat.orb.OrbMode.CHAT,
                     com.paulneja.quorvi.ui.chat.orb.OrbStates.of(phase), level = level,
+                    modifier = Modifier.horizonAnchor(horizon),
                 )
             }
             Spacer(Modifier.height(36.dp))
@@ -105,6 +117,7 @@ fun VoiceModeOverlay(vm: AssistantViewModel, ultra: Boolean, onMic: () -> Unit, 
                 RoundButton(Glyphs.Close, danger = true) { vm.end(); onClose() }
             }
         }
+    }
     }
 }
 
