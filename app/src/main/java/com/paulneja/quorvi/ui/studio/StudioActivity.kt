@@ -507,7 +507,7 @@ private fun LivePreview(apps: List<com.paulneja.quorvi.launcher.apps.AppEntry>, 
                 Row(verticalAlignment = Alignment.Top) {
                     Box(Modifier.weight(1f).height(120.dp)) { com.paulneja.quorvi.ui.canvas.ClockBlock() }
                     Box(Modifier.width(150.dp).height(64.dp)) {
-                        com.paulneja.quorvi.ui.design.BentoBlock(padding = 10.dp) { com.paulneja.quorvi.ui.design.BlockHeader(Glyphs.Agent, "Agente IA") }
+                        com.paulneja.quorvi.ui.design.BentoBlock(padding = 10.dp) { com.paulneja.quorvi.ui.design.BlockHeader(Glyphs.Agent, androidx.compose.ui.res.stringResource(com.paulneja.quorvi.R.string.panel_agent)) }
                     }
                 }
                 Row(

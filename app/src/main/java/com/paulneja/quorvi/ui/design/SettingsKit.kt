@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -41,10 +42,10 @@ fun Section(title: String) {
 }
 
 @Composable
-fun Panel(content: @Composable () -> Unit) {
+fun Panel(inset: Dp = 16.dp, content: @Composable () -> Unit) {
     Column(
         Modifier
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = inset)
             .fillMaxWidth()
             .liquidGlass(Quorvi.shapes.panel, GlassLevel.PANEL)
             .padding(horizontal = 16.dp, vertical = 8.dp),

@@ -188,6 +188,10 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - Jobs are managed from the AI agent panel (the home widget shows live jobs and opens it): pause and resume (SIGSTOP/SIGCONT to the job's process group, silent), stop (TERM, then KILL after 2 s) and kill (KILL at once). Stopping or killing there gives the job's chat a turn saying the user ended it, and Nexo is told not to restart it. Stopping from the chat card is silent, since the user is already in that chat.
 - Deleting a chat (or all chats) stops its jobs first, with no follow-up.
 
+## Glass highlight
+
+- The tilt-following specular highlight (miuix-blur `BloomStroke`) is only drawn on chrome glass (page pill, search bar, dock). On panels it left a thin vertical streak inside tiles that hold clipped children, so panels rely on the rim alone.
+
 ## AI switch
 
 - AI is optional. A switch at the top of Settings (and on the first-run screen) turns it off; it lives in `agent_config` (key `ai`) so `:app` and `:work` both see it live. A missing key means on.

@@ -134,7 +134,8 @@ fun Modifier.liquidGlass(
             if (blur > 0.dp) blur(blur.toPx(), blur.toPx())
             if (displacementPx > 0f) lens(refractionHeight = band.toPx(), refractionAmount = displacementPx, chromaticAberration = optics.dispersion)
         },
-        highlight = if (highlight != null && (level == GlassLevel.CHROME || level == GlassLevel.PANEL)) ({ highlight.value.copy(alpha = 0.6f) }) else null,
+        // miuix BloomStroke leaves a vertical streak inside panels that hold clipped children, so panels skip it.
+        highlight = if (highlight != null && level == GlassLevel.CHROME) ({ highlight.value.copy(alpha = 0.6f) }) else null,
         onDrawSurface = { drawRect(surface) },
     ).glassRim(shape, look.edge)
 }

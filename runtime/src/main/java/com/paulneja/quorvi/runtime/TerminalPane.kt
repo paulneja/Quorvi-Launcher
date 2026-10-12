@@ -224,13 +224,13 @@ class TerminalPane(
             setTerminalViewClient(viewClient)
             setTextSize(fontSize)
             setTypeface(mono)
-            setPadding(dp(10), dp(4), dp(10), dp(4))
             isFocusable = true
             isFocusableInTouchMode = true
             attachSession(created)
         }
         terminal = view
-        content.addView(view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        // TerminalView draws from x = 0 and ignores its own padding.
+        content.addView(view, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT).apply { setMargins(dp(12), dp(4), dp(12), 0) })
         view.requestFocus()
     }
 

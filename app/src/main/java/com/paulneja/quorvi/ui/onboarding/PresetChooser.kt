@@ -72,7 +72,7 @@ fun PresetChooser(current: HomePreset?, firstRun: Boolean, onChoose: (HomePreset
                 Spacer(Modifier.height(12.dp))
             }
             if (firstRun) {
-                com.paulneja.quorvi.ui.design.Panel {
+                com.paulneja.quorvi.ui.design.Panel(inset = 0.dp) {
                     com.paulneja.quorvi.ui.design.SwitchRow(stringResource(R.string.ai_onboarding), ai) { ai = it }
                     com.paulneja.quorvi.ui.design.Hint(stringResource(R.string.ai_onboarding_desc))
                 }

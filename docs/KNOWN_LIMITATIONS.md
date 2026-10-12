@@ -77,6 +77,12 @@ Anything not listed here as verified should be treated as unverified. Test devic
 **Voice**
 - Experimental: it can behave oddly or inconsistently; the settings screen says so.
 
+**Seen while recording the README, not fixed yet**
+- While a new provider lists its models, a temporary "probe" provider shows up in the provider list.
+- In the terminal, `fastfetch`'s color blocks render as full-width cyan bars.
+- Command search shows the Terminal result with a palette icon.
+- Once, the keyboard opened by itself right after the first-run screen; not reproduced since.
+
 **Device control**
 - Real root, Shizuku and ADB-over-TCP execution (gating, levels and hooks are tested).
 - Termux `RUN_COMMAND`: Termux isn't installed on the test emulator.

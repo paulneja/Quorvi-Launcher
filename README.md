@@ -2,6 +2,13 @@
 
 An Android launcher that doubles as an operations console and a home for autonomous agents. Quorvi keeps the everyday launcher fast and offline-first, and puts **Nexo**, its built-in AI assistant, a real Unix terminal and your connections one gesture away.
 
+<p align="center">
+  <img src="docs/screenshots/home.png" width="200" alt="Home screen with liquid glass panels">
+  <img src="docs/screenshots/panel.gif" width="200" alt="A panel growing out of its tile">
+  <img src="docs/screenshots/chat.gif" width="200" alt="Asking Nexo something">
+  <img src="docs/screenshots/drawer.png" width="200" alt="App drawer">
+</p>
+
 ## Features
 
 - **Home:** liquid glass on your wallpaper, an automatic grid, pages, dock, folders, real Android widgets with free resizing, glass spaces, start presets and deep customization (glass, Material You or Material 3 surfaces, motion profiles, icons, clock).
