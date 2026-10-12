@@ -56,6 +56,8 @@ interface ToolBox {
     suspend fun killProcesses(runId: String?)
     suspend fun read(path: String): String?
     suspend fun memories(goal: String): List<String> = emptyList()
+
+    suspend fun whereabouts(): String? = null
     suspend fun allTools(): List<Tool>
 
     suspend fun chatTools(): List<Tool> = allTools()
@@ -70,10 +72,38 @@ sealed interface Capability {
     data class Missing(val reason: String) : Capability
 }
 
+class ModelStalled(val idle: Boolean) : java.io.IOException(if (idle) "the model stopped sending data" else "the model took too long")
+
+internal suspend fun <T> kotlinx.coroutines.flow.Flow<T>.collectWatched(idleMs: Long, totalMs: Long, label: String = "model", run: String? = null, block: suspend (T) -> Unit) = kotlinx.coroutines.coroutineScope {
+    val start = System.currentTimeMillis()
+    var last = start
+    var first = 0L
+    var events = 0
+    AgentLog.i(run, "$label start")
+    val watch = launch {
+        while (true) {
+            kotlinx.coroutines.delay(minOf(1_000L, idleMs))
+            val now = System.currentTimeMillis()
+            if (now - last > idleMs) { AgentLog.w(run, "$label stalled: no data for ${now - last} ms (events=$events)"); throw ModelStalled(idle = true) }
+            if (now - start > totalMs) { AgentLog.w(run, "$label too long: ${now - start} ms"); throw ModelStalled(idle = false) }
+        }
+    }
+    try {
+        collect { last = System.currentTimeMillis(); if (first == 0L) first = last - start; events++; block(it) }
+        AgentLog.i(run, "$label done in ${System.currentTimeMillis() - start} ms (first data ${first} ms, events=$events)")
+    } catch (e: Throwable) {
+        if (e !is ModelStalled) AgentLog.w(run, "$label failed after ${System.currentTimeMillis() - start} ms", e)
+        throw e
+    } finally {
+        watch.cancel()
+    }
+}
+
 data class EngineLimits(
     val maxRoundsPerStep: Int = 16,
     val maxAttemptsPerStep: Int = 2,
-    val modelTimeoutMs: Long = 180_000,
+    val modelTimeoutMs: Long = 120_000,
+    val modelTotalMs: Long = 15 * 60_000,
     val toolTimeoutMs: Long = 21 * 60_000,
     val concurrentRuns: Int = 2,
 )
@@ -474,6 +504,7 @@ class AgentEngine(
         val args = call.arguments
         val decision = policy.check(context.runId, tool, args)
         val summary = summarize(tool, args)
+        AgentLog.i(context.runId, "tool ${tool.name} ${decision.verdict}: ${AgentLog.clean(summary)}")
         when (decision.verdict) {
             Verdict.ALLOW -> Unit
             Verdict.REQUIRE_CONFIRMATION -> {
@@ -490,6 +521,7 @@ class AgentEngine(
             }
         }
         dao.append(context.runId, "agent", "tool", "${tool.name} v${tool.version}", summary, clock())
+        val toolStart = clock()
         val result = try {
             withTimeout(limits.toolTimeoutMs) { tool.invoke(args, context) }
         } catch (e: TimeoutCancellationException) {
@@ -499,6 +531,7 @@ class AgentEngine(
         } catch (e: Exception) {
             ToolResult.failed("${tool.name} failed: ${e.message ?: e::class.simpleName}")
         }
+        AgentLog.i(context.runId, "tool ${tool.name} ${result.status} in ${clock() - toolStart} ms (${result.output.length} chars)" + if (result.status != ToolStatus.SUCCESS) ": ${AgentLog.clean(result.output, 200)}" else "")
         dao.append(context.runId, "tool", "result", "${tool.name}: ${result.status}", result.output.take(2000), clock())
         return result
     }
@@ -509,8 +542,8 @@ class AgentEngine(
         val text = StringBuilder()
         val calls = mutableListOf<AiToolCall>()
         var signature: String? = null
-        withTimeout(limits.modelTimeoutMs) {
-            model.client.stream(request).collect { event ->
+        run {
+            model.client.stream(request).collectWatched(limits.modelTimeoutMs, limits.modelTotalMs, "model ${model.provider}/${model.model} msgs=${request.messages.size} tools=${request.tools.size}", runId) { event ->
                 when (event) {
                     is AiEvent.TextDelta -> text.append(event.text)
                     is AiEvent.ToolCalls -> calls += event.calls
@@ -596,6 +629,7 @@ class AgentEngine(
         val now = clock()
         val changed = dao.transition(runId, from.name, to.name, now, if (to.terminal) now else run.finishedAt, error ?: if (to == RunState.RUNNING) null else run.error)
         if (changed == 0) return false
+        AgentLog.i(runId, "state ${from.name} -> ${to.name}: ${AgentLog.clean(message, 120)}")
         dao.append(runId, "system", "state", message, "${from.name}->${to.name}", now)
         return true
     }
