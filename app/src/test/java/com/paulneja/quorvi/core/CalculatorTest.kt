@@ -34,6 +34,9 @@ class CalculatorTest {
     fun formatsWithoutNoise() {
         assertEquals("0.3", Calculator.format(Calculator.evaluate("0.1+0.2")!!))
         assertEquals("4", Calculator.format(4.0))
+        assertEquals("3,11", Calculator.short(3.1068559612, java.util.Locale.forLanguageTag("es-AR")))
+        assertEquals("3.11", Calculator.short(3.1068559612, java.util.Locale.US))
+        assertEquals("1609,3", Calculator.short(1609.344, java.util.Locale.forLanguageTag("es-AR")))
     }
 
     @Test

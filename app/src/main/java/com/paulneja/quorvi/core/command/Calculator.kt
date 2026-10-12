@@ -12,6 +12,13 @@ object Calculator {
         return runCatching { Parser(text).parse() }.getOrNull()?.takeIf { it.isFinite() }
     }
 
+    fun short(value: Double, locale: java.util.Locale = java.util.Locale.getDefault()): String {
+        val f = java.text.NumberFormat.getNumberInstance(locale)
+        f.maximumFractionDigits = if (kotlin.math.abs(value) >= 100) 1 else 2
+        f.isGroupingUsed = kotlin.math.abs(value) >= 10_000
+        return f.format(value)
+    }
+
     fun format(value: Double): String {
         val bd = BigDecimal(value).setScale(10, RoundingMode.HALF_UP).stripTrailingZeros()
         return if (bd.scale() <= 0) bd.toBigInteger().toString() else bd.toPlainString()

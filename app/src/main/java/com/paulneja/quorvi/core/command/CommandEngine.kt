@@ -118,7 +118,7 @@ class CommandEngine @Inject constructor(
                 add(CommandResult("calc", CommandKind.CALC, "= $text", q, 120, CommandAction.Copy(text), glyph = CommandGlyph.CALC))
             }
             Units.convert(q)?.let { (value, unit) ->
-                val text = Calculator.format(value) + " " + unit
+                val text = Calculator.short(value) + " " + unit
                 add(CommandResult("unit", CommandKind.CALC, text, q, 120, CommandAction.Copy(text), glyph = CommandGlyph.CALC))
             }
             agent(q)?.let { add(it) }
