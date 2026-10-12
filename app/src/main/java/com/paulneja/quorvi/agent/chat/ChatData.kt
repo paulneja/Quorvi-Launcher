@@ -42,6 +42,8 @@ object ChatRole {
     const val CAPSULE = "capsule"
 
     const val PLAN = "plan"
+
+    const val JOB = "job"
 }
 
 object ChatStatus {
@@ -114,6 +116,12 @@ interface ChatDao {
 
     @Query("SELECT * FROM chat_messages WHERE id = :id")
     suspend fun message(id: String): ChatMessageEntity?
+
+    @Query("SELECT * FROM chat_messages WHERE role = :role ORDER BY createdAt")
+    suspend fun byRole(role: String): List<ChatMessageEntity>
+
+    @Query("SELECT * FROM chat_messages WHERE role = :role ORDER BY createdAt")
+    fun observeByRole(role: String): kotlinx.coroutines.flow.Flow<List<ChatMessageEntity>>
 
     @Query("SELECT m.* FROM chat_messages m WHERE m.chatId != :exclude AND m.role IN ('user','assistant') AND m.text LIKE '%' || :query || '%' ORDER BY m.createdAt DESC LIMIT :limit")
     suspend fun search(query: String, exclude: String, limit: Int): List<ChatMessageEntity>

@@ -22,6 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.onTimeout
 import kotlinx.coroutines.selects.select
@@ -38,6 +39,8 @@ class CoreService : Service() {
     @Inject lateinit var capsules: com.paulneja.quorvi.agent.capsules.CapsuleRunner
     @Inject lateinit var privileged: com.paulneja.quorvi.control.PrivilegedShells
     @Inject lateinit var backgroundGuard: com.paulneja.quorvi.control.BackgroundGuard
+    @Inject lateinit var jobs: com.paulneja.quorvi.agent.jobs.BackgroundJobs
+    @Volatile private var jobCount = 0
     private var live: Job? = null
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -88,6 +91,7 @@ class CoreService : Service() {
             agents.engine.active.collect { count -> if (count > 0) showWorking(count) else demote() }
         }
         loop = scope.launch { pollConnections() }
+        scope.launch { watchJobs() }
         scope.launch { runCatching { backgroundGuard.protectWorkProcess() } }
     }
 
@@ -152,7 +156,75 @@ class CoreService : Service() {
         runCatching { startForeground(NOTIFICATION, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC) }
     }
 
+    private fun showJobs(count: Int) {
+        holdWake()
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(NotificationChannel(CHANNEL, getString(R.string.agents_channel), NotificationManager.IMPORTANCE_LOW))
+        val open = PendingIntent.getActivity(this, 0, OperationsActivity.agents(this).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
+        val notification = Notification.Builder(this, CHANNEL)
+            .setSmallIcon(R.drawable.ic_agent)
+            .setContentTitle(resources.getQuantityString(R.plurals.jobs_running, count, count))
+            .setContentText(getString(R.string.jobs_running_hint))
+            .setContentIntent(open)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .build()
+        runCatching { startForeground(NOTIFICATION, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC) }
+    }
+
+    private suspend fun watchJobs() {
+        var seen = jobs.started.value
+        while (true) {
+            val pending = runCatching { jobs.pending() }.getOrDefault(0)
+            jobCount = runCatching { jobs.aliveCount() }.getOrDefault(0)
+            if (jobCount > 0 && agents.engine.active.value == 0) showJobs(jobCount)
+            var submitted = false
+            if (pending > 0) runCatching { jobs.sweep() }.getOrDefault(emptyList()).forEach { finished ->
+                if (runCatching { settle(finished) }.getOrDefault(false)) submitted = true
+            }
+            val before = jobCount
+            jobCount = runCatching { jobs.aliveCount() }.getOrDefault(0)
+            if (before > 0 && jobCount == 0 && !submitted && agents.engine.active.value == 0) demote()
+            val wait = if (jobCount > 0) 10_000L else if (pending > 0) 30_000L else Long.MAX_VALUE
+            kotlinx.coroutines.withTimeoutOrNull(wait) { jobs.started.first { it != seen } }
+            seen = jobs.started.value
+        }
+    }
+
+    private suspend fun settle(ended: com.paulneja.quorvi.agent.jobs.FinishedJob): Boolean {
+        if (jobs.saveEnded(ended)) notifyJob(ended)
+        val job = jobs.current(ended) ?: return false
+        if (!jobs.chatExists(job.chatId)) {
+            jobs.markContinued(job)
+            return false
+        }
+        val origin = "chat:${job.chatId}"
+        if (dao.busyRuns(origin, System.currentTimeMillis() - 30 * 60_000L) > 0) return false
+        jobs.markContinued(job)
+        val spec = agents.engine.encode(com.paulneja.quorvi.agent.engine.RunSpec(goal = jobs.goal(job), origin = origin, chatId = job.chatId, jobId = job.note.id))
+        return runs.submit(spec).isNotEmpty().also { if (it) promote() }
+    }
+
+    private fun notifyJob(job: com.paulneja.quorvi.agent.jobs.FinishedJob) {
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(NotificationChannel(JOBS_CHANNEL, getString(R.string.jobs_channel), NotificationManager.IMPORTANCE_DEFAULT))
+        val ok = job.note.state == com.paulneja.quorvi.agent.jobs.JobState.DONE
+        val open = PendingIntent.getActivity(this, job.note.id.hashCode(), com.paulneja.quorvi.ui.chat.ChatActivity.intent(this, job.chatId), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        val notification = Notification.Builder(this, JOBS_CHANNEL)
+            .setSmallIcon(R.drawable.ic_agent)
+            .setContentTitle(getString(if (ok) R.string.jobs_done_title else R.string.jobs_failed_title, job.note.title))
+            .setContentText(getString(R.string.jobs_done_text, com.paulneja.quorvi.agent.jobs.JobScripts.duration((job.note.endedAt ?: System.currentTimeMillis()) - job.note.startedAt)))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        runCatching { manager.notify(JOBS_NOTIFICATION_BASE + (job.note.id.hashCode() and 0xffff), notification) }
+    }
+
     private fun demote() {
+        if (jobCount > 0) {
+            showJobs(jobCount)
+            return
+        }
         releaseWake()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
@@ -213,6 +285,8 @@ class CoreService : Service() {
         const val VERSION = 2
         private const val CHANNEL = "agents"
         private const val NOTIFICATION = 7
+        private const val JOBS_CHANNEL = "jobs"
+        private const val JOBS_NOTIFICATION_BASE = 40_000
         private const val ACTION_WORK = "com.paulneja.quorvi.action.AGENT_WORK"
         private const val ACTION_KILL = "com.paulneja.quorvi.action.KILL_AGENTS"
     }

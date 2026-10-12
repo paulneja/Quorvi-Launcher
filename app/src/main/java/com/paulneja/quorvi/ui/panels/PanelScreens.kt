@@ -9,6 +9,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -169,7 +171,6 @@ private fun AgentPanel(vm: PanelsViewModel, links: PanelLinks) {
     val policy by vm.policyConfig.collectAsStateWithLifecycle()
     val privileged by vm.privileged.collectAsStateWithLifecycle()
     val capsules by vm.capsules.collectAsStateWithLifecycle()
-    val screen by vm.screenControl.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     Row(
@@ -187,6 +188,20 @@ private fun AgentPanel(vm: PanelsViewModel, links: PanelLinks) {
             )
         }
         Chevron()
+    }
+
+    val jobs by vm.jobs.collectAsStateWithLifecycle()
+    if (jobs.isNotEmpty()) {
+        GlassGroup(title = stringResource(R.string.jobs_section)) {
+            jobs.forEach { j ->
+                JobManageRow(
+                    j,
+                    onOpen = { com.paulneja.quorvi.ui.chat.ChatActivity.open(context, chat = j.chatId) },
+                    onPause = { vm.pauseJob(j.note.id) }, onResume = { vm.resumeJob(j.note.id) },
+                    onStop = { vm.endJob(j.note.id, force = false) }, onKill = { vm.endJob(j.note.id, force = true) },
+                )
+            }
+        }
     }
 
     val active = runs.filter { !it.state.terminal }
@@ -222,7 +237,7 @@ private fun AgentPanel(vm: PanelsViewModel, links: PanelLinks) {
         },
     )
     GlassGroup {
-        GroupRow(stringResource(R.string.agent_how), stringResource(R.string.agent_how_summary, autonomy, if (screen) stringResource(R.string.on) else stringResource(R.string.off)), Glyphs.Sliders, onClick = { open = !open }) {
+        GroupRow(stringResource(R.string.agent_how), autonomy, Glyphs.Sliders, onClick = { open = !open }) {
             Glyph(if (open) Glyphs.Down else Glyphs.Chevron, 15.dp, Quorvi.colors.textTertiary)
         }
         androidx.compose.animation.AnimatedVisibility(open) {
@@ -247,13 +262,58 @@ private fun AgentPanel(vm: PanelsViewModel, links: PanelLinks) {
                     stringResource(when (policy.mode) { AutonomyMode.MANUAL -> R.string.autonomy_manual_desc; AutonomyMode.AUTO -> R.string.autonomy_auto_desc; AutonomyMode.BYPASS -> R.string.autonomy_bypass_desc }),
                     style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.padding(top = 6.dp, bottom = 6.dp),
                 )
-                Setting(stringResource(R.string.agent_screen), stringResource(R.string.agent_screen_desc), onClick = { vm.open(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }) { QuorviSwitch(screen, null) }
                 val rootOn = privileged.enabled.isNotEmpty()
                 Setting(stringResource(R.string.agent_root), stringResource(if (rootOn) R.string.agent_root_desc_on else R.string.agent_root_desc_off), onClick = links.openCapabilities) { QuorviSwitch(rootOn, null) }
                 Setting(stringResource(R.string.agent_lan), stringResource(R.string.agent_lan_sub), onClick = { vm.setRelaxNetwork(!policy.relaxNetwork) }) { QuorviSwitch(policy.relaxNetwork, { vm.setRelaxNetwork(it) }) }
             }
         }
         GroupRow(stringResource(R.string.agent_history), stringResource(R.string.agent_history_desc), Glyphs.Timer, onClick = links.openOperations) { Chevron() }
+    }
+}
+
+@Composable
+private fun JobManageRow(j: JobRow, onOpen: () -> Unit, onPause: () -> Unit, onResume: () -> Unit, onStop: () -> Unit, onKill: () -> Unit) {
+    var open by remember(j.note.id) { mutableStateOf(false) }
+    val note = j.note
+    val color = when (note.state) {
+        com.paulneja.quorvi.agent.jobs.JobState.RUNNING -> Quorvi.colors.accent
+        com.paulneja.quorvi.agent.jobs.JobState.DONE -> Quorvi.colors.success
+        com.paulneja.quorvi.agent.jobs.JobState.PAUSED -> Quorvi.colors.textSecondary
+        else -> Quorvi.colors.danger
+    }
+    Column(Modifier.fillMaxWidth().clickable { open = !open }.padding(horizontal = 16.dp, vertical = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+                if (note.running) com.paulneja.quorvi.ui.chat.Spinner() else Glyph(com.paulneja.quorvi.ui.chat.jobGlyph(note.state), 16.dp, color)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(note.title, style = Quorvi.type.action, color = Quorvi.colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(com.paulneja.quorvi.ui.chat.jobStateLabel(note), style = Quorvi.type.caption.copy(fontWeight = FontWeight.Medium), color = color, maxLines = 1)
+                    if (note.alive) com.paulneja.quorvi.ui.chat.Elapsed(note.startedAt)
+                    j.chatTitle?.let { Text(" · $it", style = Quorvi.type.caption, color = Quorvi.colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false)) }
+                }
+            }
+            val turn by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, label = "turn")
+            Glyph(Glyphs.Down, 14.dp, Quorvi.colors.textTertiary, Modifier.graphicsLayer { rotationZ = turn })
+        }
+        androidx.compose.animation.AnimatedVisibility(open) {
+            Column(Modifier.padding(top = 10.dp)) {
+                Text(note.command, style = Quorvi.type.mono.copy(fontSize = 11.sp), color = Quorvi.colors.textTertiary, maxLines = 4, overflow = TextOverflow.Ellipsis)
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (note.state == com.paulneja.quorvi.agent.jobs.JobState.RUNNING) ChipButton(stringResource(R.string.job_pause), Glyphs.Pause, onPause)
+                    if (note.state == com.paulneja.quorvi.agent.jobs.JobState.PAUSED) ChipButton(stringResource(R.string.job_resume), Glyphs.Play, onResume)
+                    if (note.alive) {
+                        ChipButton(stringResource(R.string.job_stop), Glyphs.Stop, onStop)
+                        ChipButton(stringResource(R.string.job_kill), Glyphs.Close, onKill)
+                    }
+                    ChipButton(stringResource(R.string.job_open_chat), Glyphs.Chevron, onOpen)
+                }
+                if (note.alive) Text(stringResource(R.string.job_actions_hint), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.padding(top = 8.dp))
+            }
+        }
     }
 }
 

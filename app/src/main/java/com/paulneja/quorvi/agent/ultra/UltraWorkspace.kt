@@ -118,9 +118,9 @@ class UltraWorkspace(private val runtime: Workspace, private val token: suspend 
         return "Edited $path."
     }
 
-    suspend fun run(command: String, timeoutSeconds: Int): String {
+    suspend fun run(command: String, timeoutSeconds: Int, maxSeconds: Int = 900): String {
         CommitPolicy.blockedCommand(command)?.let { return "Refused: $it" }
-        val r = bash(command, timeoutMs = timeoutSeconds.coerceIn(5, 900) * 1000L)
+        val r = bash(command, timeoutMs = timeoutSeconds.coerceIn(5, maxSeconds.coerceAtLeast(5)) * 1000L)
         val out = (r.stdout + if (r.stderr.isNotBlank()) "\n" + r.stderr else "").let { if (it.length > OUTPUT_CAP) "…(cut)\n" + it.takeLast(OUTPUT_CAP) else it }
         val status = if (r.timedOut) "timed out" else "exit code ${r.exitCode}"
         return "$ $command\n$status\n\n${out.ifBlank { "(no output)" }}"
@@ -185,7 +185,7 @@ interface GitHubReads {
     suspend fun pulls(repo: String, state: String): String
 }
 
-fun ultraTools(ws: UltraWorkspace, config: UltraConfig, github: GitHubReads? = null): List<Tool> = buildList {
+fun ultraTools(ws: UltraWorkspace, config: UltraConfig, github: GitHubReads? = null, maxSeconds: Int = 900): List<Tool> = buildList {
     add(UltraTool("repo.clone", "Clone a GitHub repository (owner/name) into this chat's workspace. Uses the user's GitHub account.", Risk.NETWORK, schema { string("repo", "owner/name") }) { a, _ -> ws.clone(a.string("repo")) })
     add(UltraTool("ws.list", "List files in the repository (skips .git, capped at 400).", Risk.READ, schema { string("path", "Folder, empty for the root", optional = true) }) { a, _ -> ws.list(a.stringOrNull("path").orEmpty()) })
     add(UltraTool("ws.read", "Read a text file of the repository (capped at 60k characters).", Risk.READ, schema { string("path", "File path") }) { a, _ -> ws.read(a.string("path")) })
@@ -195,8 +195,8 @@ fun ultraTools(ws: UltraWorkspace, config: UltraConfig, github: GitHubReads? = n
     }) { a, _ -> ws.edit(a.string("path"), a.string("old_text"), a.string("new_text")) })
     add(UltraTool("ws.changes", "Git status and diff of the uncommitted changes.", Risk.READ, schema { }) { _, _ -> ws.changes() })
     if (config.allowCommands) add(UltraTool("ws.run", "Run a bash command in the repository folder (build, test, grep, package managers). git commit/push and gh writes are refused: Nexo makes the commit and the pull request.", Risk.WRITE, schema {
-        string("command", "The bash command line"); string("timeout_seconds", "5-900, default 120", optional = true)
-    }) { a, _ -> ws.run(a.string("command"), a.stringOrNull("timeout_seconds")?.toIntOrNull() ?: 120) })
+        string("command", "The bash command line"); string("timeout_seconds", "5-$maxSeconds, default 120. For long downloads, builds or installs use job.start instead", optional = true)
+    }) { a, _ -> ws.run(a.string("command"), a.stringOrNull("timeout_seconds")?.toIntOrNull() ?: 120, maxSeconds) })
 }
 
 private class UltraTool(

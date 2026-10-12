@@ -218,6 +218,7 @@ private fun Thinking(runView: RunView?) {
         if (runView?.steps.isNullOrEmpty()) {
             Spacer(Modifier.width(10.dp))
             ShimmerText(stringResource(R.string.chat_thinking_short))
+            Elapsed(runView?.run?.startedAt ?: runView?.run?.createdAt)
         }
     }
 }
@@ -248,6 +249,15 @@ private fun Caret() {
 }
 
 @Composable
+internal fun Elapsed(since: Long?) {
+    if (since == null) return
+    val seconds by androidx.compose.runtime.produceState(0L, since) {
+        while (true) { value = ((System.currentTimeMillis() - since) / 1000).coerceAtLeast(0); kotlinx.coroutines.delay(1000) }
+    }
+    if (seconds >= 3) Text(" · ${seconds} s", style = Quorvi.type.caption.copy(fontFeatureSettings = "tnum"), color = Quorvi.colors.textTertiary, maxLines = 1)
+}
+
+@Composable
 private fun ActivityStrip(view: RunView) {
     var open by remember(view.run?.id) { mutableStateOf(false) }
     val steps = view.steps
@@ -258,10 +268,19 @@ private fun ActivityStrip(view: RunView) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val current = view.current
-            if (view.busy && current != null) {
+            if (view.busy) {
                 Spinner()
                 Spacer(Modifier.width(8.dp))
-                Box(Modifier.widthIn(max = 230.dp)) { ShimmerText(stepLabel(current)) }
+                val since = current?.startedAt ?: steps.lastOrNull()?.finishedAt ?: view.run?.startedAt
+                Column(Modifier.widthIn(max = 250.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f, fill = false)) { ShimmerText(if (current != null) stepLabel(current) else stringResource(R.string.act_next_step)) }
+                        Elapsed(since)
+                    }
+                    val detail = current?.title?.takeIf { current.toolName != null && it != current.toolName }
+                    if (detail != null) Text(detail, style = Quorvi.type.mono.copy(fontSize = 11.sp), color = Quorvi.colors.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    else if (steps.isNotEmpty()) Text(pluralLabel(done, steps.size, emptyList()), style = Quorvi.type.caption.copy(fontSize = 11.sp), color = Quorvi.colors.textTertiary, maxLines = 1)
+                }
             } else {
                 Glyph(Glyphs.Sparkle, 14.dp, Quorvi.colors.accent)
                 Spacer(Modifier.width(8.dp))
@@ -309,7 +328,7 @@ private fun StepRow(s: StepEntity, last: Boolean) {
 }
 
 @Composable
-private fun Spinner() {
+internal fun Spinner() {
     val t = rememberInfiniteTransition(label = "spin")
     val r by t.animateFloat(0f, 360f, infiniteRepeatable(tween(900, easing = LinearEasing)), label = "r")
     val accent = Quorvi.colors.accent
@@ -411,6 +430,68 @@ fun TaskCard(m: ChatMessageEntity, animate: Boolean, view: RunView?, onOpen: () 
         }
     }
 }
+
+@Composable
+fun JobCard(note: com.paulneja.quorvi.agent.jobs.JobNote, animate: Boolean, onStop: () -> Unit) {
+    var open by remember(note.id) { mutableStateOf(false) }
+    val state = note.state
+    val color = when (state) {
+        com.paulneja.quorvi.agent.jobs.JobState.DONE -> Quorvi.colors.success
+        com.paulneja.quorvi.agent.jobs.JobState.RUNNING -> Quorvi.colors.accent
+        com.paulneja.quorvi.agent.jobs.JobState.PAUSED -> Quorvi.colors.textSecondary
+        else -> Quorvi.colors.danger
+    }
+    Row(Modifier.fillMaxWidth().padding(start = 38.dp).entrance(animate, fromBelow = false)) {
+        Column(Modifier.fillMaxWidth().liquidGlass(RoundedCornerShape(20.dp), GlassLevel.PANEL).clickable { open = !open }.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(30.dp).clip(RoundedCornerShape(10.dp)).background(color.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) {
+                    if (note.running) Spinner() else Glyph(jobGlyph(state), 16.dp, color)
+                }
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.chat_job), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary)
+                    Text(note.title, style = Quorvi.type.action.copy(fontWeight = FontWeight.SemiBold), color = Quorvi.colors.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                if (note.alive) Box(Modifier.size(32.dp).clip(CircleShape).clickable(onClick = onStop), contentAlignment = Alignment.Center) {
+                    Glyph(Glyphs.Stop, 18.dp, Quorvi.colors.textSecondary)
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(jobStateLabel(note), style = Quorvi.type.caption.copy(fontWeight = FontWeight.Medium), color = color)
+                if (note.alive) Elapsed(note.startedAt)
+                else note.endedAt?.let { Text(" · " + com.paulneja.quorvi.agent.jobs.JobScripts.duration(it - note.startedAt), style = Quorvi.type.caption.copy(fontFeatureSettings = "tnum"), color = Quorvi.colors.textTertiary) }
+                Spacer(Modifier.weight(1f))
+                note.exitCode?.takeIf { it != 0 && !note.byUser && state != com.paulneja.quorvi.agent.jobs.JobState.STOPPED }?.let {
+                    Text(stringResource(R.string.job_exit, it), style = Quorvi.type.caption.copy(fontFeatureSettings = "tnum"), color = Quorvi.colors.textSecondary)
+                }
+            }
+            Text(
+                note.command, style = Quorvi.type.mono.copy(fontSize = 11.sp), color = Quorvi.colors.textTertiary,
+                maxLines = if (open) 12 else 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp),
+            )
+        }
+    }
+}
+
+fun jobGlyph(state: String) = when (state) {
+    com.paulneja.quorvi.agent.jobs.JobState.DONE -> Glyphs.Check
+    com.paulneja.quorvi.agent.jobs.JobState.PAUSED -> Glyphs.Pause
+    else -> Glyphs.Terminal
+}
+
+@Composable
+fun jobStateLabel(note: com.paulneja.quorvi.agent.jobs.JobNote): String = stringResource(
+    when (note.state) {
+        com.paulneja.quorvi.agent.jobs.JobState.RUNNING -> R.string.job_running
+        com.paulneja.quorvi.agent.jobs.JobState.PAUSED -> R.string.job_paused
+        com.paulneja.quorvi.agent.jobs.JobState.DONE -> R.string.job_done
+        com.paulneja.quorvi.agent.jobs.JobState.STOPPED -> if (note.byUser) R.string.job_stopped_by_you else R.string.job_stopped
+        com.paulneja.quorvi.agent.jobs.JobState.KILLED -> R.string.job_killed
+        com.paulneja.quorvi.agent.jobs.JobState.LOST -> R.string.job_lost
+        else -> R.string.job_failed
+    },
+)
 
 @Composable
 fun FileChip(f: ChatAttachment) {

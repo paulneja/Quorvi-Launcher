@@ -43,8 +43,9 @@ class RuntimeToolBox @Inject constructor(
     private val memory: com.paulneja.quorvi.agent.memory.MemoryStore,
     private val services: com.paulneja.quorvi.connections.services.ServicesRepo,
     private val servicesDao: com.paulneja.quorvi.connections.services.ServicesDao,
-    private val screen: com.paulneja.quorvi.control.ScreenControlBroker,
     private val privileged: com.paulneja.quorvi.control.PrivilegedShells,
+    private val limitsStore: LimitsStore,
+    private val jobs: com.paulneja.quorvi.agent.jobs.BackgroundJobs,
 ) : ToolBox {
     private suspend fun homePlace(): Triple<String, Double, Double>? = runCatching {
         val p = settings.weatherPlace.first()?.split('\u0001')?.takeIf { it.size == 3 } ?: return@runCatching null
@@ -64,9 +65,15 @@ class RuntimeToolBox @Inject constructor(
 
     override suspend fun allTools(): List<Tool> = buildTools(includeCi = session.tokens.signedIn())
 
+    override suspend fun limits(): AgentLimits = limitsStore.current()
+
+    override suspend fun jobTools(chatId: String): List<Tool> =
+        if (runtime.availability() == RuntimeAvailability.READY) com.paulneja.quorvi.agent.jobs.jobTools(jobs, chatId) else emptyList()
+
     private suspend fun buildTools(includeCi: Boolean): List<Tool> {
-        val tools = mutableListOf<Tool>(FsWrite(runtime), FsRead(runtime), FsList(runtime), ShellExec(runtime), ArtifactExport(runtime, dao), WebSearch(http), WebFetch(http), com.paulneja.quorvi.agent.tools.WeatherForecast(http) { homePlace() }, com.paulneja.quorvi.agent.tools.MemorySearch(memory), com.paulneja.quorvi.agent.tools.MemoryPropose(memory))
-        connections.hosts().filter { it.agentAccess && it.hostKeyFingerprint != null }.let { if (it.isNotEmpty()) tools += com.paulneja.quorvi.agent.tools.SshExec(hosts, it) }
+        val limits = limitsStore.current()
+        val tools = mutableListOf<Tool>(FsWrite(runtime), FsRead(runtime), FsList(runtime), ShellExec(runtime, limits.commandSeconds), ArtifactExport(runtime, dao), WebSearch(http), WebFetch(http), com.paulneja.quorvi.agent.tools.WeatherForecast(http) { homePlace() }, com.paulneja.quorvi.agent.tools.MemorySearch(memory), com.paulneja.quorvi.agent.tools.MemoryPropose(memory))
+        connections.hosts().filter { it.agentAccess && it.hostKeyFingerprint != null }.let { if (it.isNotEmpty()) tools += com.paulneja.quorvi.agent.tools.SshExec(hosts, it, limits.sshSeconds) }
         services.workers().let { if (it.isNotEmpty()) tools += com.paulneja.quorvi.agent.tools.RemoteRun(services, it) }
         services.discordChannels().let { if (it.isNotEmpty()) tools += com.paulneja.quorvi.agent.tools.DiscordPost(services, it) }
         if (servicesDao.ofKind(com.paulneja.quorvi.connections.services.ServiceKind.HOME_ASSISTANT.name).isNotEmpty()) tools += com.paulneja.quorvi.agent.tools.HaCallService(services)
@@ -76,12 +83,8 @@ class RuntimeToolBox @Inject constructor(
             tools += com.paulneja.quorvi.agent.tools.githubTools(github)
         }
 
-        if (screen.connected) {
-            tools += com.paulneja.quorvi.agent.tools.AndroidInspect(screen)
-            tools += com.paulneja.quorvi.agent.tools.AndroidAct(screen)
-            tools += com.paulneja.quorvi.agent.tools.AndroidLaunch(screen)
-            tools += com.paulneja.quorvi.agent.tools.AndroidListApps(screen)
-        }
+        tools += com.paulneja.quorvi.agent.tools.AndroidLaunch(appContext)
+        tools += com.paulneja.quorvi.agent.tools.AndroidListApps(appContext)
 
         privileged.verifyOrDegrade()
         val backends = privileged.config().enabled
@@ -142,8 +145,9 @@ class Agents @Inject constructor(
     chats: com.paulneja.quorvi.agent.chat.RoomChatLog,
     orchestra: com.paulneja.quorvi.agent.orchestra.OrchestraStore,
     ultra: com.paulneja.quorvi.agent.ultra.UltraStore,
+    limits: LimitsStore,
 ) {
-    val engine = AgentEngine(dao, models, toolbox, scope, com.paulneja.quorvi.agent.policy.PolicyService(store, device), chats = chats, orchestra = orchestra::current, ultra = ultra::current, texts = AndroidEngineTexts(context))
+    val engine = AgentEngine(dao, models, toolbox, scope, com.paulneja.quorvi.agent.policy.PolicyService(store, device), chats = chats, orchestra = orchestra::current, ultra = ultra::current, texts = AndroidEngineTexts(context), tuning = limits::current)
 
     suspend fun resumeWaiting() {
         val waiting = dao.runsIn(com.paulneja.quorvi.ops.RunState.WAITING_CAPABILITY.name).filter { it.error?.startsWith(AgentEngine.WAIT_PREFIX) == true }

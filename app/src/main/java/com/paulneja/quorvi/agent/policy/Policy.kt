@@ -33,8 +33,9 @@ class PolicyEngine(
             "shell.exec", "android.shell" -> shell(runCatching { args.strings("argv") }.getOrElse { return Decision(Verdict.DENY, it.message.orEmpty()) })
             "web.fetch" -> network(args.stringOrNull("url").orEmpty())
 
+            "job.start" -> shell(listOf("bash", "-c", args.stringOrNull("command").orEmpty()))
             "ssh.exec", "remote.run" -> shell(listOf("sh", "-c", args.stringOrNull("command").orEmpty()))
-            "ha.call_service", "android.inspect_ui", "android.act", "android.screenshot", "android.launch", "android.list_apps", "android.read_notifications" -> Decision(Verdict.ALLOW, "the category rule decides")
+            "ha.call_service", "android.screenshot", "android.launch", "android.list_apps", "android.read_notifications" -> Decision(Verdict.ALLOW, "the category rule decides")
             "android.priv_shell", "android.root" -> Decision(Verdict.ALLOW, "privileged action; the category rule decides")
             "discord.post" -> Decision(Verdict.DENY, "Posting to Discord needs an explicit publishing permission", publish = true)
             else -> if (tool.risk == Risk.EXTERNAL) Decision(Verdict.REQUIRE_CONFIRMATION, "${tool.name} acts outside the device") else Decision(Verdict.ALLOW, "within the run workspace")

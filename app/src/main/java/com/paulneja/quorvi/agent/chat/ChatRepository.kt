@@ -27,6 +27,7 @@ class ChatRepository @Inject constructor(
     private val ops: OpsDao,
     private val core: CoreClient,
     private val capsules: com.paulneja.quorvi.agent.capsules.CapsuleDao,
+    private val jobs: com.paulneja.quorvi.agent.jobs.BackgroundJobs,
 ) {
     val chats: Flow<List<ChatEntity>> = dao.observeChats()
 
@@ -142,6 +143,7 @@ class ChatRepository @Inject constructor(
 
     suspend fun delete(chatId: String) {
         stop(chatId)
+        runCatching { jobs.stopChat(chatId) }
         val files = dao.attachmentsOf(chatId).flatMap { ChatAttachment.decode(it) }
         dao.deleteChat(chatId)
 
@@ -164,6 +166,7 @@ class ChatRepository @Inject constructor(
     }
 
     suspend fun deleteAll() {
+        runCatching { jobs.stopAll() }
         val files = dao.allAttachments().flatMap { ChatAttachment.decode(it) }
         dao.deleteAll()
         forgetRuns(ops.chatRunIds())

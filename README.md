@@ -8,11 +8,12 @@ An Android launcher that doubles as an operations console and a home for autonom
 - **Drawer and Command:** instant, accent-insensitive search for apps, settings, contacts, conversions and the web, with suggestions you can tune.
 - **Nexo (chat):** streaming answers with tools, memory, attachments and image generation; an optional orchestra of specialists with their own model chains; `@meta`, `@investigar` and mentions.
 - **Ultra:** repository and heavy work in a private workspace. Clone, edit, build and test; pull requests only when you ask, as an editable draft you approve.
+- **Background jobs:** downloads, builds and installs run with no time limit; when one ends you get a notification and Nexo picks up the chat with the result. Other time limits are adjustable in Settings → Agents.
 - **Terminal:** a bundled Unix runtime (Termux packages, apt) running inside the app.
 - **Operations:** runs, steps, DAGs, logs and artifacts for every agent task, with approvals and a kill switch.
 - **Connections:** GitHub (Actions, PRs, issues, pending items), SSH with pinned host keys, Docker, HTTP/HTTPS/TCP monitors, Home Assistant, GitLab, Discord webhooks and a remote Linux worker.
 - **Capsules:** saved AI instructions or fixed-step automations with schedules and event triggers.
-- **Device control:** accessibility-based screen control with arbitration, optional root, Shizuku and ADB backends with granular levels.
+- **Device control:** opening apps, installing APKs agents build (through Shizuku) and optional root, Shizuku and ADB backends with granular levels. Agents never touch the screen.
 - **Voice:** an optional system assistant that hears and speaks through your own AI provider.
 - **Backup:** scene export plus password-sealed full backups (AES-256-GCM).
 - English and Spanish.
@@ -27,6 +28,17 @@ github.clientId=<your GitHub OAuth app client id>
 ```
 
 The GitHub client ID is public (device flow, no secret). Without it, GitHub sign-in is disabled.
+
+To sign release builds with your own key, add a `keystore.properties` (never committed):
+
+```properties
+storeFile=/path/to/keystore
+storePassword=…
+keyAlias=…
+keyPassword=…
+```
+
+Without it, release builds use the debug key.
 
 ```bash
 ./gradlew assembleDebug          # app-debug.apk (quorvi.dbg)
@@ -64,4 +76,4 @@ licenses/       third-party licenses and attributions
 
 ## Third-party code
 
-Liquid glass builds on `miuix-blur` and adapts the lens from Kyant0/AndroidLiquidGlass (both Apache-2.0). The runtime uses the Termux bootstrap and packages. Fonts: Geist and Geist Mono (SIL OFL 1.1). See `licenses/`.
+Liquid glass builds on `miuix-blur` and adapts the lens from Kyant0/AndroidLiquidGlass (both Apache-2.0). The runtime uses the Termux bootstrap and packages. Fonts: Geist and Geist Mono (SIL OFL 1.1). See `licenses/` or Settings → About → Licenses in the app.

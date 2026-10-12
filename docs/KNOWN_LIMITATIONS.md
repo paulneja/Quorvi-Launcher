@@ -27,7 +27,6 @@ Anything not listed here as verified should be treated as unverified. Test devic
 - The Go worker: pairing, a long task finishing while the app was killed, and the run reattaching on resume.
 - Approval cards: "allow once" runs the command exactly once and is audited.
 - Capsules: a 3-step capsule ran without a model; an AI capsule ran from the charging trigger in its own chat.
-- Accessibility screen control: observe → act → verify loop on Settings.
 - Chat → Ultra offer, `@meta`, `/plan`, capsule proposals, PR draft card (grouping, per-file diff, leaving files out, editing text and the authorship check).
 - The voice pipeline with a test server: assistant gesture, upload to `/audio/transcriptions`, spoken answer requested sentence by sentence.
 - The orb in every state (60 fps in the bench screen on the emulator) and the Horizon transition both ways, checked frame by frame on the emulator.
@@ -66,10 +65,12 @@ Anything not listed here as verified should be treated as unverified. Test devic
 - Home Assistant and GitLab against real instances (clients and mapping are tested).
 - The worker over TLS or Tailscale (tested over localhost with `adb reverse`).
 
+**Background jobs**
+- NOT VERIFIED on the phone: verified on the emulator only (start, card, notification, automatic follow-up with the app in the background), for 20-second jobs.
+- NOT VERIFIED: jobs lasting hours with the screen off, and whether the phone's battery manager kills `:shell` meanwhile. Jobs are children of the `:shell` process; if Android kills it or the phone restarts, the job dies and is reported as interrupted.
+
 **Device control**
 - Real root, Shizuku and ADB-over-TCP execution (gating, levels and hooks are tested).
-- Screen control on the phone (verified on the emulator).
-- Screenshots are not yet fed to the model automatically; the agent reasons over the accessibility tree.
 - Termux `RUN_COMMAND`: Termux isn't installed on the test emulator.
 
 **Visuals**

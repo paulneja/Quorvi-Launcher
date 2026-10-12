@@ -65,6 +65,10 @@ interface ToolBox {
     suspend fun ultraWorkspace(chatId: String): com.paulneja.quorvi.agent.ultra.UltraWorkspace? = null
 
     fun ultraGitHub(): com.paulneja.quorvi.agent.ultra.GitHubReads? = null
+
+    suspend fun jobTools(chatId: String): List<Tool> = emptyList()
+
+    suspend fun limits(): AgentLimits = AgentLimits()
 }
 
 sealed interface Capability {
@@ -133,11 +137,14 @@ class AgentEngine(
     private val orchestra: suspend () -> com.paulneja.quorvi.agent.orchestra.Orchestra = { com.paulneja.quorvi.agent.orchestra.Orchestra() },
     private val ultra: suspend () -> com.paulneja.quorvi.agent.ultra.UltraConfig = { com.paulneja.quorvi.agent.ultra.UltraConfig() },
     internal val texts: EngineTexts = EngineTexts.English,
+    private val tuning: suspend () -> AgentLimits? = { null },
 ) : RunExecutor {
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val jobs = ConcurrentHashMap<String, Job>()
     private val controls = ConcurrentHashMap<String, Control>()
     private val slots = Semaphore(limits.concurrentRuns)
+
+    internal suspend fun liveLimits(): EngineLimits = runCatching { tuning() }.getOrNull()?.applyTo(limits) ?: limits
     private val _active = MutableStateFlow(0)
     val active: StateFlow<Int> = _active.asStateFlow()
 
@@ -523,7 +530,7 @@ class AgentEngine(
         dao.append(context.runId, "agent", "tool", "${tool.name} v${tool.version}", summary, clock())
         val toolStart = clock()
         val result = try {
-            withTimeout(limits.toolTimeoutMs) { tool.invoke(args, context) }
+            withTimeout(liveLimits().toolTimeoutMs) { tool.invoke(args, context) }
         } catch (e: TimeoutCancellationException) {
             ToolResult(ToolStatus.TIMED_OUT, "${tool.name} timed out")
         } catch (e: CancellationException) {
@@ -542,8 +549,9 @@ class AgentEngine(
         val text = StringBuilder()
         val calls = mutableListOf<AiToolCall>()
         var signature: String? = null
+        val live = liveLimits()
         run {
-            model.client.stream(request).collectWatched(limits.modelTimeoutMs, limits.modelTotalMs, "model ${model.provider}/${model.model} msgs=${request.messages.size} tools=${request.tools.size}", runId) { event ->
+            model.client.stream(request).collectWatched(live.modelTimeoutMs, live.modelTotalMs, "model ${model.provider}/${model.model} msgs=${request.messages.size} tools=${request.tools.size}", runId) { event ->
                 when (event) {
                     is AiEvent.TextDelta -> text.append(event.text)
                     is AiEvent.ToolCalls -> calls += event.calls

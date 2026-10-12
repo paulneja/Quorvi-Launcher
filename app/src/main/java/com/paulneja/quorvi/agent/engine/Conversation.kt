@@ -35,6 +35,8 @@ import kotlinx.coroutines.withTimeout
 interface ChatLog {
     suspend fun history(chatId: String): List<ChatMessageEntity>
     suspend fun begin(chatId: String, runId: String): String
+
+    suspend fun reopen(chatId: String, runId: String): Pair<String, String>? = null
     suspend fun stream(messageId: String, text: String)
     suspend fun finish(messageId: String, text: String, status: String, files: List<ChatAttachment> = emptyList())
     suspend fun task(chatId: String, runId: String, goal: String)
@@ -89,14 +91,20 @@ internal class Conversation(private val engine: AgentEngine, private val chats: 
         val ultraConfig = if (ultra) engine.ultraConfig() else null
         val workspace = if (ultra) engine.toolbox.ultraWorkspace(chatId) else null
         val planning = spec.plan
+        val commandSeconds = runCatching { engine.toolbox.limits().commandSeconds }.getOrDefault(900)
         val tools = (engine.chatTools().filter { orchestra.autoMemory || it.name != "memory.save" } +
-            (if (workspace != null && ultraConfig != null) com.paulneja.quorvi.agent.ultra.ultraTools(workspace, ultraConfig, engine.toolbox.ultraGitHub()) else emptyList()))
+            (if (workspace != null && ultraConfig != null) com.paulneja.quorvi.agent.ultra.ultraTools(workspace, ultraConfig, engine.toolbox.ultraGitHub(), commandSeconds) else emptyList()) +
+            (if (!ultra || ultraConfig?.allowCommands == true) runCatching { engine.toolbox.jobTools(chatId) }.getOrDefault(emptyList()) else emptyList()))
 
             .filter { !planning || it.risk == com.paulneja.quorvi.agent.tools.Risk.READ || it.risk == com.paulneja.quorvi.agent.tools.Risk.NETWORK }
         engine.dao.markStarted(runId, "nexo-chat", coordinator.label, clock())
         if (!engine.moveTo(runId, RunState.RUNNING, "conversation")) return
 
-        val messageId = chats.begin(chatId, runId)
+        val resumable = engine.dao.lastEvent(runId, Transcript.SAVED)
+            ?.takeIf { s -> (engine.dao.lastEvent(runId, Transcript.USED)?.sequence ?: -1) < s.sequence }
+            ?.payload?.let(Transcript::decode)?.let { it.askId == null } == true
+        val reopened = if (resumable) chats.reopen(chatId, runId) else null
+        val messageId = reopened?.first ?: chats.begin(chatId, runId)
         val stored = chats.history(chatId).filter { it.id != messageId && it.status != ChatStatus.STREAMING }
         val parts = stored.flatMap { it.files }.associateWith { chats.attach(it) }
         val states = stored.mapNotNull { it.runId }.associateWith { chats.taskState(it) }
@@ -114,6 +122,7 @@ internal class Conversation(private val engine: AgentEngine, private val chats: 
             else if (answer != null) messages += AiMessage.user(answer)
         } else {
             if (answer != null && messages.lastOrNull()?.let { it.role == AiRole.USER && it.text == answer } != true) messages += AiMessage.user(answer)
+            if (spec.jobId != null) messages += AiMessage.user(spec.goal)
             if (messages.isEmpty()) messages += AiMessage.user(spec.goal)
             if (messages.last().role != AiRole.USER) messages += AiMessage.user("(The user approved the pending action. Continue where you left off.)")
         }
@@ -133,10 +142,12 @@ internal class Conversation(private val engine: AgentEngine, private val chats: 
             (if (spec.research) Prompts.research(orchestra.delegates.contains(Specialist.RESEARCH)) else "") +
             (if (planning) Prompts.plan() else "") +
             (if (spec.voice) Prompts.voice() else "") +
+            (if (byName.containsKey(AgentEngine.wire("job.start"))) Prompts.jobs() else "") +
+            (if (spec.jobId != null) Prompts.jobDone() else "") +
             (if (asked.isNotEmpty()) Prompts.asked(asked) else "")
         val context = ToolContext(runId, "$runId/chat", if (ultra) "ultra/$chatId" else "chats/$chatId", null) { type, message, payload -> engine.dao.append(runId, "tool", type, message, payload, clock()) }
 
-        var shown = ""
+        var shown = reopened?.second.orEmpty()
         try {
             var final = ""
             var usedTools = false
@@ -403,6 +414,7 @@ internal class Conversation(private val engine: AgentEngine, private val chats: 
 
     private suspend fun stream(seat: Seat, runId: String, request: AiRequest, onText: suspend (String) -> Unit = {}): Streamed {
         var last: Exception? = null
+        val live = engine.liveLimits()
         for ((i, choice) in seat.choices.withIndex()) {
             val text = StringBuilder()
             val calls = mutableListOf<AiToolCall>()
@@ -410,7 +422,7 @@ internal class Conversation(private val engine: AgentEngine, private val chats: 
             var pushed = 0L
             try {
                 run {
-                    choice.client.stream(request.copy(model = choice.model)).collectWatched(engine.limits.modelTimeoutMs, engine.limits.modelTotalMs, "model ${choice.provider}/${choice.model} msgs=${request.messages.size} tools=${request.tools.size}", runId) { event ->
+                    choice.client.stream(request.copy(model = choice.model)).collectWatched(live.modelTimeoutMs, live.modelTotalMs, "model ${choice.provider}/${choice.model} msgs=${request.messages.size} tools=${request.tools.size}", runId) { event ->
                         when (event) {
                             is AiEvent.TextDelta -> {
                                 text.append(event.text)
@@ -566,6 +578,12 @@ internal object Prompts {
         append("- When the user is signed in to GitHub you have github_* tools: read their profile, stats, repositories (private too), files, commits, issues, pull requests and Actions freely. Commenting or opening issues happens in their name and they approve each one; pull requests only go through Ultra.\n")
         if (o.instructions.isNotBlank()) append("\nThe user's own instructions (follow them unless they break the rules above):\n").append(o.instructions.trim()).append('\n')
     }
+
+    fun jobs() = "\n- BACKGROUND JOBS: anything that can take more than a minute or two (downloads, builds, package installs, test suites, conversions, long scripts) goes in job_start, not in a blocking command. " +
+        "It has no time limit and keeps running while the user does other things. After starting it, tell the user in one line what is running and that you will report back, then end your turn; never sleep or poll in a loop. " +
+        "When it ends Quorvi notifies the user and gives you a new turn with the result, whenever that is. Use job_status only if the user asks how it is going.\n"
+
+    fun jobDone() = "\n\nA background job you started has just ended; its result is in the last message. Pick up where you left off: check the result, continue the remaining work, and tell the user how it went. If it failed on its own, read the log, fix what you can and try again. If the user stopped it, never restart it unless they ask.\n"
 
     fun offer() = "\n- If the user wants to build or change software or repositories, or to run a heavy multi-stage job or a full workflow, call offer_ultra once with a short reason (the user decides) and keep helping meanwhile.\n"
 

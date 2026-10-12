@@ -1,7 +1,7 @@
 package com.paulneja.quorvi.agent.policy
 
 object Watch {
-    private val commandTools = setOf("shell.exec", "ssh.exec", "remote.run", "android.shell")
+    private val commandTools = setOf("shell.exec", "job.start", "ssh.exec", "remote.run", "android.shell")
     private val rootTools = setOf("android.priv_shell", "android.root", "android.power_hook")
     private val root = Regex("(^|[\\s;&|(\"'`\\[,])(su|sudo|tsu|doas)([\\s\"',\\]]|$)")
 

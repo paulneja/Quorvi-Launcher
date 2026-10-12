@@ -50,6 +50,7 @@ class ChatViewModel @Inject constructor(
     private val pulls: com.paulneja.quorvi.agent.ultra.UltraPullRequests,
     private val github: com.paulneja.quorvi.connections.github.GitHubApi,
     private val nexoSettings: com.paulneja.quorvi.core.settings.QuorviSettings,
+    private val jobs: com.paulneja.quorvi.agent.jobs.BackgroundJobs,
 ) : ViewModel() {
     private val _pendingMode = MutableStateFlow(com.paulneja.quorvi.agent.chat.ChatMode.CHAT)
     val pendingMode: StateFlow<String> = _pendingMode.asStateFlow()
@@ -93,6 +94,8 @@ class ChatViewModel @Inject constructor(
     fun changePlan(messageId: String, note: String) = viewModelScope.launch { repo.changePlan(messageId, note) }
 
     fun dismissCard(messageId: String) = viewModelScope.launch { repo.dismiss(messageId) }
+
+    fun stopJob(chatId: String, jobId: String) = viewModelScope.launch { runCatching { jobs.stop(chatId, jobId, byUser = true) } }
 
     fun saveCapsule(messageId: String, onSaved: (String?) -> Unit) = viewModelScope.launch { onSaved(repo.saveCapsule(messageId)) }
 

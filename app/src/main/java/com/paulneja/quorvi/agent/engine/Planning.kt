@@ -20,6 +20,8 @@ data class RunSpec(
     val plan: Boolean = false,
 
     val voice: Boolean = false,
+
+    val jobId: String? = null,
 )
 
 enum class GoalKind { DOCUMENT, CI_DIAGNOSIS, GENERAL }

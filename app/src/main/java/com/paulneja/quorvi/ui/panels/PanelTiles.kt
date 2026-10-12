@@ -137,7 +137,20 @@ private fun AgentTileBody(vm: PanelsViewModel, rich: Boolean) {
     val runs by vm.runs.collectAsStateWithLifecycle()
     val providers by vm.providers.collectAsStateWithLifecycle()
     val summary = PanelSummaries.agent(runs, providers.isNotEmpty())
+    val jobs by vm.jobs.collectAsStateWithLifecycle()
+    val alive = jobs.filter { it.note.alive }
     Column {
+        if (rich) alive.take(2).forEach { j ->
+            Row(Modifier.padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                Glyph(if (j.note.running) Glyphs.Terminal else Glyphs.Pause, 12.dp, if (j.note.running) Quorvi.colors.accent else Quorvi.colors.textSecondary)
+                Spacer(Modifier.width(8.dp))
+                Text(j.note.title, style = Quorvi.type.caption, color = Quorvi.colors.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            }
+        }
+        if (alive.isNotEmpty() && summary !is AgentSummary.Running) {
+            StatusLine(androidx.compose.ui.res.pluralStringResource(R.plurals.jobs_running, alive.size, alive.size), Quorvi.colors.accent)
+            return@Column
+        }
         if (rich) {
             runs.take(3).forEach { r ->
                 Row(Modifier.padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {

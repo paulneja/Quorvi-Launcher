@@ -121,6 +121,9 @@ data class WatchedRepoEntity(@PrimaryKey val fullName: String, val addedAt: Long
 
 @Dao
 interface OpsDao {
+    @Query("SELECT COUNT(*) FROM runs WHERE origin = :origin AND (state IN ('QUEUED', 'PLANNING', 'RUNNING', 'PAUSING', 'RETRYING', 'VERIFYING', 'CANCELLING') OR (state = 'WAITING_USER' AND updatedAt > :waitingSince))")
+    suspend fun busyRuns(origin: String, waitingSince: Long): Int
+
     @Query("SELECT id FROM runs WHERE origin IN (:origins)")
     suspend fun runIdsOf(origins: List<String>): List<String>
 

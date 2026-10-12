@@ -181,10 +181,10 @@ class PolicyService(
 
         fun categoryOf(tool: Tool): Category = when (tool.name) {
             "android.priv_shell", "android.root", "android.power_hook" -> Category.PRIVILEGED
-            "android.inspect_ui", "android.act", "android.screenshot", "android.launch", "android.list_apps", "android.read_notifications", "android.shell" -> Category.SCREEN
+            "android.screenshot", "android.launch", "android.list_apps", "android.read_notifications", "android.shell" -> Category.SCREEN
             else -> when (tool.name.substringBefore('.')) {
                 "fs" -> Category.WORKSPACE
-                "shell" -> Category.SHELL
+                "shell", "job" -> Category.SHELL
                 "ssh", "remote" -> Category.SSH
                 "ha" -> Category.DEVICES
                 "web", "ci" -> Category.NETWORK
@@ -198,6 +198,7 @@ class PolicyService(
             "android.priv_shell", "android.root" -> "${args.stringOrNull("level") ?: "exec"}: ${args.stringOrNull("command")}"
             "android.act" -> "${args.stringOrNull("action")} ${args.stringOrNull("target").orEmpty()}"
             "android.launch" -> args.stringOrNull("package").orEmpty()
+            "job.start" -> args.stringOrNull("command").orEmpty()
             "ssh.exec" -> "${args.stringOrNull("host")}: ${args.stringOrNull("command")}"
             "remote.run" -> "${args.stringOrNull("worker")}: ${args.stringOrNull("command")}"
             "ha.call_service" -> "${args.stringOrNull("entity_id")} ${args.stringOrNull("service")}"

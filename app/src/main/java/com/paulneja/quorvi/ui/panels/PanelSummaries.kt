@@ -22,6 +22,19 @@ data class RunView(
     val chat: Boolean get() = origin.startsWith("chat:")
 }
 
+@Immutable
+data class JobRow(val chatId: String, val chatTitle: String?, val note: com.paulneja.quorvi.agent.jobs.JobNote)
+
+object JobRows {
+    private const val RECENT_MS = 2 * 60 * 60_000L
+
+    fun of(items: List<com.paulneja.quorvi.agent.jobs.JobItem>, titles: Map<String, String>, now: Long): List<JobRow> =
+        items.filter { it.note.alive || (it.note.endedAt ?: 0) > now - RECENT_MS }
+            .sortedWith(compareByDescending<com.paulneja.quorvi.agent.jobs.JobItem> { it.note.alive }.thenByDescending { it.note.startedAt })
+            .take(8)
+            .map { JobRow(it.chatId, titles[it.chatId], it.note) }
+}
+
 sealed interface AgentSummary {
     data class Running(val count: Int, val done: Int, val total: Int) : AgentSummary
     data object Idle : AgentSummary

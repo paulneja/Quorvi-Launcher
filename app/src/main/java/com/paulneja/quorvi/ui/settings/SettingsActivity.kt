@@ -50,6 +50,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -197,6 +199,7 @@ private fun Route(route: String, studio: StudioViewModel, catalog: AppCatalog, p
     when {
         route == SettingsActivity.ROOT -> Root(studio, onOpen = { push(it.name) }, onBack = pop)
         module == SettingsModule.HOME || module == SettingsModule.APPS || module == SettingsModule.BACKUP -> StudioModule(studio, catalog, module, onBack = pop)
+        module == SettingsModule.ABOUT -> AboutModule(onBack = pop)
         module == SettingsModule.SYSTEM -> CapabilitiesScreen(hiltViewModel<CapabilitiesViewModel>(), onBack = pop)
         module == SettingsModule.AI -> when (sub) {
             "orchestra" -> com.paulneja.quorvi.ui.chat.OrchestraScreen(hiltViewModel<ChatViewModel>(), onBack = pop, onModels = { push("AI/models") })
@@ -209,6 +212,7 @@ private fun Route(route: String, studio: StudioViewModel, catalog: AppCatalog, p
             val capsules = hiltViewModel<CapsuleViewModel>()
             when {
                 sub == "policy" -> PolicyScreen(hiltViewModel<PolicyViewModel>(), onBack = pop)
+                sub == "limits" -> SubScreen(stringResource(R.string.limits_title), pop) { LimitsSettings(hiltViewModel<LimitsViewModel>()) }
                 sub == "capsules" -> SubScreen(stringResource(R.string.mod_capsules), pop) {
                     CapsulesTab(
                         capsules, onEdit = { push("AGENTS/capsule:$it") }, onRun = { context.startActivity(OperationsActivity.run(context, it)) },
@@ -251,7 +255,7 @@ private enum class Group(val title: Int, val modules: List<SettingsModule>) {
     MIND(R.string.mod_group_ai, listOf(SettingsModule.AI, SettingsModule.AGENTS)),
     LINKS(R.string.mod_group_links, listOf(SettingsModule.GITHUB, SettingsModule.SERVERS)),
     DEVICE(R.string.mod_group_device, listOf(SettingsModule.SYSTEM, SettingsModule.TERMINAL)),
-    NEXO(R.string.mod_group_nexo, listOf(SettingsModule.BACKUP)),
+    NEXO(R.string.mod_group_nexo, listOf(SettingsModule.BACKUP, SettingsModule.ABOUT)),
 }
 
 @Composable
@@ -405,6 +409,7 @@ private fun AgentsModule(capsules: CapsuleViewModel, onOpen: (String) -> Unit, o
         item {
             Panel {
                 NavRow(Glyphs.Shield, stringResource(R.string.policy_rules), stringResource(R.string.mod_agents_mode, config.mode.name.lowercase().replaceFirstChar(Char::uppercase))) { onOpen("policy") }
+                NavRow(Glyphs.Timer, stringResource(R.string.limits_title), stringResource(R.string.limits_summary)) { onOpen("limits") }
                 NavRow(Glyphs.Bolt, stringResource(R.string.mod_capsules), androidx.compose.ui.res.pluralStringResource(R.plurals.mod_capsules_count, list.size, list.size)) { onOpen("capsules") }
                 val draft = stringResource(R.string.capsule_ai_draft)
                 NavRow(Glyphs.Sparkle, stringResource(R.string.capsule_ai), stringResource(R.string.capsule_ai_desc)) { com.paulneja.quorvi.ui.chat.ChatActivity.open(context, draft = draft) }
@@ -520,5 +525,57 @@ private fun rememberSummaries(studio: StudioViewModel): Map<SettingsModule, Stri
         SettingsModule.SYSTEM to if (priv.enabled.isEmpty()) context.getString(R.string.mod_system_none) else priv.enabled.joinToString(" · ") { when (it) { PrivBackend.ROOT -> "Root"; PrivBackend.SHIZUKU -> "Shizuku"; PrivBackend.ADB_TCP -> "ADB" } },
         SettingsModule.TERMINAL to runtime?.let { context.getString(when (it) { RuntimeAvailability.READY -> R.string.ops_runtime_ready; RuntimeAvailability.INSTALLING -> R.string.ops_runtime_installing; RuntimeAvailability.FAILED -> R.string.shell_failed; RuntimeAvailability.UNBOUND -> R.string.ops_runtime_setup }) },
         SettingsModule.BACKUP to null,
+        SettingsModule.ABOUT to "Quorvi " + com.paulneja.quorvi.BuildConfig.VERSION_NAME,
     )
+}
+
+private class License(val name: String, val holder: String, val kind: String, @androidx.annotation.RawRes val text: Int)
+
+private val licenses = listOf(
+    License("AndroidX · Jetpack Compose · Room · DataStore", "The Android Open Source Project", "Apache-2.0", R.raw.license_apache),
+    License("Kotlin · kotlinx.coroutines · kotlinx.serialization", "JetBrains s.r.o. and contributors", "Apache-2.0", R.raw.license_apache),
+    License("Dagger / Hilt", "The Dagger Authors", "Apache-2.0", R.raw.license_apache),
+    License("OkHttp", "Square, Inc.", "Apache-2.0", R.raw.license_apache),
+    License("compose-miuix-ui (miuix-blur)", "compose-miuix-ui contributors", "Apache-2.0", R.raw.license_apache),
+    License("AndroidLiquidGlass (lens, vibrancy, inner shadow)", "Kyant0", "Apache-2.0", R.raw.license_apache),
+    License("Termux terminal-emulator · terminal-view", "Termux developers", "Apache-2.0", R.raw.license_apache),
+    License("sshj", "Jeroen van Erp and contributors", "Apache-2.0", R.raw.license_apache),
+    License("Shizuku API", "RikkaW", "Apache-2.0", R.raw.license_apache),
+    License("Bouncy Castle", "The Legion of the Bouncy Castle Inc.", "MIT", R.raw.license_bouncycastle),
+    License("Geist · Geist Mono", "The Geist Project Authors", "SIL OFL 1.1", R.raw.license_ofl),
+)
+
+@Composable
+private fun AboutModule(onBack: () -> Unit) {
+    val context = LocalContext.current
+    var open by remember { mutableStateOf<License?>(null) }
+    val current = open
+    if (current != null) {
+        androidx.activity.compose.BackHandler { open = null }
+        val text = remember(current) { runCatching { context.resources.openRawResource(current.text).bufferedReader().use { it.readText() } }.getOrDefault("") }
+        SubScreen(current.name, { open = null }) {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text("© " + current.holder + " · " + current.kind, style = Quorvi.type.caption, color = Quorvi.colors.textSecondary)
+                androidx.compose.foundation.text.selection.SelectionContainer {
+                    Text(text, style = Quorvi.type.mono.copy(fontSize = 11.sp, lineHeight = 15.sp), color = Quorvi.colors.text, modifier = Modifier.padding(top = 12.dp, bottom = 32.dp))
+                }
+            }
+        }
+        return
+    }
+    ModuleList(SettingsModule.ABOUT, onBack) {
+        item { Spacer(Modifier.height(12.dp)) }
+        item {
+            Panel {
+                ActionRow("Quorvi " + com.paulneja.quorvi.BuildConfig.VERSION_NAME, stringResource(R.string.about_made_by)) {}
+            }
+        }
+        item { Section(stringResource(R.string.about_licenses)) }
+        item {
+            Panel {
+                licenses.forEach { l -> ActionRow(l.name, l.kind + " · " + l.holder) { open = l } }
+                Hint(stringResource(R.string.about_licenses_hint))
+            }
+        }
+    }
 }

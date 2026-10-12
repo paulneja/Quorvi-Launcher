@@ -412,6 +412,9 @@ private fun MessageList(vm: ChatViewModel, policy: PolicyViewModel, messages: Li
                         val saved = stringResource(R.string.capsule_draft_saved)
                         CapsuleCard(m, animate, onSave = { vm.saveCapsule(m.id) { id -> if (id != null) android.widget.Toast.makeText(context, saved, android.widget.Toast.LENGTH_SHORT).show() } }, onDismiss = { vm.dismissCard(m.id) })
                     }
+                    ChatRole.JOB -> com.paulneja.quorvi.agent.jobs.JobNote.decode(m.text)?.let { note ->
+                        JobCard(note, animate, onStop = { vm.stopJob(m.chatId, note.id) })
+                    }
                     ChatRole.TASK -> {
                         val v by remember(m.runId) { m.runId?.let { vm.runView(it) } ?: kotlinx.coroutines.flow.flowOf(null) }.collectAsState(null)
                         TaskCard(m, animate, v) {

@@ -69,7 +69,7 @@ class FsList(private val workspace: Workspace) : Tool {
     }
 }
 
-class ShellExec(private val workspace: Workspace) : Tool {
+class ShellExec(private val workspace: Workspace, private val maxSeconds: Int = 1200) : Tool {
     override val name = "shell.exec"
     override val description = "Run a program inside the Quorvi Unix runtime (bash, python, git, pkg…). argv is passed without a shell; use [\"bash\",\"-lc\",\"…\"] for pipes. The working directory is the run workspace."
     override val risk = Risk.WRITE
@@ -77,18 +77,18 @@ class ShellExec(private val workspace: Workspace) : Tool {
     override val parameters = schema {
         stringArray("argv", "Program and arguments")
         string("cwd", "Working directory relative to the run workspace", optional = true)
-        integer("timeoutSec", "Timeout in seconds (default 120, max 1200)")
+        integer("timeoutSec", "Timeout in seconds (default 120, max $maxSeconds). For downloads, builds or installs that may take longer, use job.start instead")
     }
 
     override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult {
         val argv = args.strings("argv")
         val execId = "${context.runId}:${UUID.randomUUID()}"
-        val timeout = (args.intOrNull("timeoutSec") ?: 120).coerceIn(1, 1200)
+        val timeout = (args.intOrNull("timeoutSec") ?: 120).coerceIn(1, maxSeconds)
         context.emit("exec", argv.joinToString(" ").take(300), execId)
         val result = workspace.exec(ExecRequest(argv = argv, id = execId, cwd = context.path(args.stringOrNull("cwd") ?: "."), timeoutMs = timeout * 1000L))
         val text = buildString {
             append("exit=").append(result.exitCode)
-            if (result.timedOut) append(" (timed out after ${timeout}s)")
+            if (result.timedOut) append(" (timed out after ${timeout}s; rerun long work with job.start so it is not cut off)")
             append(" in ").append(result.durationMs).append(" ms\n")
             if (result.stdout.isNotEmpty()) append("stdout:\n").append(result.stdout.takeLast(8_000)).append('\n')
             if (result.stderr.isNotEmpty()) append("stderr:\n").append(result.stderr.takeLast(4_000)).append('\n')
@@ -250,7 +250,7 @@ class CiFailureLogs(private val api: GitHubApi) : Tool {
     }
 }
 
-class SshExec(private val hosts: com.paulneja.quorvi.connections.Hosts, private val allowed: List<com.paulneja.quorvi.connections.HostEntity>) : Tool {
+class SshExec(private val hosts: com.paulneja.quorvi.connections.Hosts, private val allowed: List<com.paulneja.quorvi.connections.HostEntity>, private val maxSeconds: Int = 600) : Tool {
     override val name = "ssh.exec"
     override val description = "Run a shell command on one of the user's Linux hosts over SSH. Allowed hosts: " + allowed.joinToString { it.name } + "."
     override val risk = Risk.EXTERNAL
@@ -258,7 +258,7 @@ class SshExec(private val hosts: com.paulneja.quorvi.connections.Hosts, private 
     override val parameters = schema {
         string("host", "Host name as listed")
         string("command", "Shell command to run on the host")
-        integer("timeoutSec", "Timeout in seconds (default 60, max 600)")
+        integer("timeoutSec", "Timeout in seconds (default 60, max $maxSeconds)")
     }
 
     override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult {
@@ -266,7 +266,7 @@ class SshExec(private val hosts: com.paulneja.quorvi.connections.Hosts, private 
         val host = allowed.firstOrNull { it.name.equals(wanted, true) || it.id == wanted } ?: return ToolResult.failed("Host \"$wanted\" is not available to agents", ToolStatus.UNAUTHORIZED)
         val command = args.string("command")
         context.emit("exec", "ssh ${host.name}: ${command.take(300)}", host.id)
-        val result = hosts.exec(host, command, (args.intOrNull("timeoutSec") ?: 60).coerceIn(1, 600).toLong())
+        val result = hosts.exec(host, command, (args.intOrNull("timeoutSec") ?: 60).coerceIn(1, maxSeconds).toLong())
         val text = "exit=${result.exitCode}${if (result.timedOut) " (timed out)" else ""}\nstdout:\n${result.stdout.takeLast(8_000)}\nstderr:\n${result.stderr.takeLast(3_000)}"
         return when {
             result.timedOut -> ToolResult(ToolStatus.TIMED_OUT, text)

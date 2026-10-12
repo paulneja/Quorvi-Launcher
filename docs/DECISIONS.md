@@ -114,9 +114,9 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - FTS4 (the system SQLite doesn't guarantee FTS5). Only reviewed memories are used; agent proposals stay pending. Memories are injected with their source and a staleness warning.
 - The chat coordinator gets pinned and relevant memories; with auto-memory on it saves what the user says about themselves (no secrets).
 
-## Screen control and privileges
+## Privileges
 
-- Optional accessibility service in `:work`: semantic actions, tree reading with password fields hidden, and arbitration (a user touch preempts the agent). `android.act` rereads after acting.
+- Agents never touch the screen: there is no accessibility service. They can list and open apps through the package manager, install APKs they built through Shizuku (`android.install_apk`, one approval each) and run privileged commands.
 - Optional privileged shells: root (`su`), Shizuku (direct API; only `newProcess` via reflection) and ADB over TCP. Each is enabled separately and verified when enabled and on every use; a backend that stops answering is marked degraded in memory instead of being switched off.
 - Root levels read < control < exec < modify < experimental with a user-set ceiling; MODIFY uses `su --mount-master`.
 
@@ -179,11 +179,28 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 - Below Android 13 the transition is a fade and the field is the plain gradient.
 - Falls back to a Canvas orb below Android 13 or if a shader fails to compile.
 
+## Time limits and background jobs
+
+- Limits are configurable in Settings → Agents → Time limits and stored in `agent_config` (key `limits`) so the `:work` process reads them live: terminal commands (`shell.exec`, Ultra `ws_run`, default 20 min, up to 180), SSH (default 10 min), model silence (default 120 s) and longest model reply (default 15 min). The per-tool watchdog is the larger command limit plus one minute; the runtime's hard cap is 181 min.
+- Long work goes to background jobs (`job.start`, `job.status`, `job.stop`, `job.list`), which have no time limit. A job runs detached in the runtime (`setsid`, output to `~/jobs/<id>/out.log`, exit code to `~/jobs/<id>/exit`). Its state lives in a chat message of role `job` (no schema change), which is also the card the user sees and can stop.
+- `job.start` goes through the same shell policy as `shell.exec` (category SHELL, git push refused, Ultra commit rules).
+- `CoreService` polls running jobs every 10 s, stays in the foreground with a wake lock while any run, and when one ends posts a notification and submits a new turn in that chat (`RunSpec.jobId`) with the result and the end of the log. If the chat is busy (a run in progress, or waiting for the user for less than 30 min) the follow-up waits. A job the agent already saw finish with `job.status`, or that it stopped itself, gets no follow-up.
+- Jobs are managed from the AI agent panel (the home widget shows live jobs and opens it): pause and resume (SIGSTOP/SIGCONT to the job's process group, silent), stop (TERM, then KILL after 2 s) and kill (KILL at once). Stopping or killing there gives the job's chat a turn saying the user ended it, and Nexo is told not to restart it. Stopping from the chat card is silent, since the user is already in that chat.
+- Deleting a chat (or all chats) stops its jobs first, with no follow-up.
+
 ## Backup
 
 - The scene export (layout and appearance) never contains secrets.
 - The full backup is a `.qbk` file sealed with a password: PBKDF2-SHA256 (310 000 iterations) → AES-256-GCM. Parts: home and settings, AI (providers, API keys, models), chats and memory, capsules and agents, GitHub and servers.
 - Import decrypts and validates, stages the files and applies them at the next start in `QuorviApp.onCreate`, before Hilt opens Room or DataStore, under a cross-process file lock. Credentials are re-encrypted with the new phone's key; only backups of the same database version are accepted.
+
+## Release signing
+
+- Release builds are signed with the owner's key from `keystore.properties` (gitignored: store file, passwords, alias). Without that file the release falls back to the debug key so the project still builds.
+
+## Licenses
+
+- Third-party notices live in `licenses/` (summary in `THIRD_PARTY.md`, full Apache-2.0, Bouncy Castle and OFL texts) and in the app under Settings → About → Licenses, read from `res/raw`.
 
 ## Open questions
 

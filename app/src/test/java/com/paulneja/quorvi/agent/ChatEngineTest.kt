@@ -110,7 +110,8 @@ class ChatEngineTest {
         val resumed = model.requests.last().messages
         assertTrue(resumed.any { it.role == com.paulneja.quorvi.agent.models.AiRole.TOOL && it.text.contains("notes.txt") })
         assertEquals(2, resumed.count { it.role == com.paulneja.quorvi.agent.models.AiRole.TOOL && it.text.startsWith("[SUCCESS]") })
-        assertEquals("Listo, publiqué.", assistant().last().text)
+        assertEquals(1, assistant().count { it.runId == id })
+        assertTrue(assistant().last().text.endsWith("Listo, publiqué."))
     }
 
     @Test
@@ -333,5 +334,19 @@ class ChatEngineTest {
         assertEquals("En Córdoba hace 20 °C.", assistant().last().text)
         val history = coordinator.requests.last().messages.map { it.text }
         assertEquals(1, history.count { it.contains("Córdoba") })
+    }
+
+    @Test
+    fun aFinishedBackgroundJobOpensANewTurnWithItsResult() {
+        say("compilá la app")
+        runBlocking { db.chats().upsertMessage(ChatMessageEntity(UUID.randomUUID().toString(), chatId, ChatRole.ASSISTANT, "Lo dejo compilando y te aviso.", ChatStatus.DONE, null, System.currentTimeMillis())) }
+        val model = ScriptedModel(listOf(Turn.Text("Terminó bien, el APK está listo.")))
+        val goal = "[Background job finished] background job ab12 \"Build\" → done (exit 0)"
+        val id = engine(model).submit(Json.encodeToString(RunSpec.serializer(), RunSpec(goal = goal, origin = "chat:$chatId", chatId = chatId, jobId = "ab12")))
+        await(id, RunState.COMPLETED)
+        val request = model.requests.single()
+        assertEquals(goal, request.messages.last().text)
+        assertTrue(request.system.orEmpty().contains("background job you started has just ended"))
+        assertTrue(messages(ChatRole.ASSISTANT).last().text.endsWith("el APK está listo."))
     }
 }

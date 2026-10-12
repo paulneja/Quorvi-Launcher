@@ -46,6 +46,9 @@ class ChatActivity : ComponentActivity() {
         const val EXTRA_PROMPT = "prompt"
         const val EXTRA_DRAFT = "draft"
 
+        fun intent(context: Context, chat: String): Intent =
+            Intent(context, ChatActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra(EXTRA_CHAT, chat)
+
         fun open(context: Context, prompt: String? = null, chat: String? = null, draft: String? = null) {
             val intent = Intent(context, ChatActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             draft?.let { intent.putExtra(EXTRA_DRAFT, it) }

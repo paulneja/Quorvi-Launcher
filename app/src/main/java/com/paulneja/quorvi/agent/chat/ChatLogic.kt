@@ -43,6 +43,7 @@ object ChatLogic {
                 }
                 ChatRole.ASSISTANT -> m.text.takeIf { it.isNotBlank() && m.status != ChatStatus.ERROR }?.let { AiMessage.assistant(it) }
                 ChatRole.TASK -> AiMessage.assistant("[task \"${m.text}\" → ${m.runId?.let(taskState) ?: "submitted"}]")
+                ChatRole.JOB -> com.paulneja.quorvi.agent.jobs.JobNote.decode(m.text)?.let { AiMessage.assistant("[${it.summary()}]") }
                 ChatRole.PR -> com.paulneja.quorvi.agent.ultra.PrDraft.decode(m.text)?.let { d ->
                     val owner = buildString {
                         if (d.excluded.isNotEmpty()) append("; the user left out ").append(d.excluded.joinToString())

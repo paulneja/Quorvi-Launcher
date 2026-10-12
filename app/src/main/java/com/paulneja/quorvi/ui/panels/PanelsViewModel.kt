@@ -18,7 +18,6 @@ import com.paulneja.quorvi.connections.github.GhPull
 import com.paulneja.quorvi.connections.github.GitHubAccount
 import com.paulneja.quorvi.connections.github.GitHubApi
 import com.paulneja.quorvi.control.DeviceControls
-import com.paulneja.quorvi.control.QuorviAccessibilityService
 import com.paulneja.quorvi.control.PowerHooks
 import com.paulneja.quorvi.control.PrivBackend
 import com.paulneja.quorvi.core.settings.QuorviSettings
@@ -87,6 +86,7 @@ class PanelsViewModel @Inject constructor(
     private val modelProviders: com.paulneja.quorvi.agent.models.ModelProviders,
     chats: com.paulneja.quorvi.agent.chat.ChatDao,
     private val runtime: com.paulneja.quorvi.runtime.RuntimeClient,
+    private val backgroundJobs: com.paulneja.quorvi.agent.jobs.BackgroundJobs,
 ) : ViewModel() {
     init { viewModelScope.launch { runCatching { chatRepo.pruneOrphanRuns() } } }
 
@@ -193,9 +193,6 @@ class PanelsViewModel @Inject constructor(
     private val _prs = MutableStateFlow<List<GhPull>?>(null)
     val prs: StateFlow<List<GhPull>?> = _prs.asStateFlow()
 
-    private val _screenControl = MutableStateFlow(QuorviAccessibilityService.enabled(context))
-    val screenControl: StateFlow<Boolean> = _screenControl.asStateFlow()
-
     private val _intents = MutableSharedFlow<Intent>(extraBufferCapacity = 4)
     val intents: SharedFlow<Intent> = _intents.asSharedFlow()
 
@@ -203,7 +200,6 @@ class PanelsViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     fun refreshOnOpen() {
-        _screenControl.value = QuorviAccessibilityService.enabled(context)
         if (github.tokens.signedIn()) viewModelScope.launch { _prs.value = runCatching { api.reviewRequests() }.getOrNull() ?: _prs.value }
     }
 
@@ -220,6 +216,14 @@ class PanelsViewModel @Inject constructor(
         val spec = kotlinx.serialization.json.Json.encodeToString(com.paulneja.quorvi.agent.engine.RunSpec.serializer(), com.paulneja.quorvi.agent.engine.RunSpec(goal = goal.trim(), origin = "panel"))
         return core.submitRun(spec) != null
     }
+
+    val jobs: StateFlow<List<JobRow>> = combine(backgroundJobs.items, chats.observeChats()) { items, all ->
+        JobRows.of(items, all.associate { it.id to it.title }, System.currentTimeMillis())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun pauseJob(id: String) = viewModelScope.launch { runCatching { backgroundJobs.pause(id) } }
+    fun resumeJob(id: String) = viewModelScope.launch { runCatching { backgroundJobs.resume(id) } }
+    fun endJob(id: String, force: Boolean) = viewModelScope.launch { runCatching { backgroundJobs.end(id, force = force, byUser = true, tell = true) } }
 
     fun stopAll() = core.killAll()
     fun cancel(runId: String) = core.cancelRun(runId)
