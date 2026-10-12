@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -124,6 +125,7 @@ fun PolicyScreen(vm: PolicyViewModel, onBack: () -> Unit) {
     val config by vm.config.collectAsStateWithLifecycle()
     val grants by vm.grants.collectAsStateWithLifecycle()
     val audit by vm.audit.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     Column(Modifier.fillMaxSize()) {
         ScreenBar(stringResource(R.string.policy_title), onBack)
         LazyColumn(contentPadding = PaddingValues(12.dp)) {
@@ -173,7 +175,7 @@ fun PolicyScreen(vm: PolicyViewModel, onBack: () -> Unit) {
             item { Section(stringResource(R.string.policy_audit)) }
             items(audit, key = { it.id }) { e ->
                 Text(
-                    "${DateUtils.formatDateTime(null, e.at, DateUtils.FORMAT_SHOW_TIME)}  ${e.verdict}  ${e.action}  ${e.resource.take(80)}",
+                    "${DateUtils.formatDateTime(context, e.at, DateUtils.FORMAT_SHOW_TIME)}  ${e.verdict}  ${e.action}  ${e.resource.take(80)}",
                     style = Quorvi.type.caption.copy(fontFamily = FontFamily.Monospace),
                     color = if (e.verdict == "ALLOW") Quorvi.colors.textSecondary else Quorvi.colors.text,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 3.dp),

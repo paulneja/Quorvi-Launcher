@@ -342,10 +342,11 @@ class ChatEngineTest {
         runBlocking { db.chats().upsertMessage(ChatMessageEntity(UUID.randomUUID().toString(), chatId, ChatRole.ASSISTANT, "Lo dejo compilando y te aviso.", ChatStatus.DONE, null, System.currentTimeMillis())) }
         val model = ScriptedModel(listOf(Turn.Text("Terminó bien, el APK está listo.")))
         val goal = "[Background job finished] background job ab12 \"Build\" → done (exit 0)"
-        val id = engine(model).submit(Json.encodeToString(RunSpec.serializer(), RunSpec(goal = goal, origin = "chat:$chatId", chatId = chatId, jobId = "ab12")))
+        val id = engine(model).submit(Json.encodeToString(RunSpec.serializer(), RunSpec(goal = goal, label = "Background job: Build", origin = "chat:$chatId", chatId = chatId, jobId = "ab12")))
         await(id, RunState.COMPLETED)
         val request = model.requests.single()
         assertEquals(goal, request.messages.last().text)
+        assertEquals("Background job: Build", runBlocking { db.ops().run(id) }?.goal)
         assertTrue(request.system.orEmpty().contains("background job you started has just ended"))
         assertTrue(messages(ChatRole.ASSISTANT).last().text.endsWith("el APK está listo."))
     }

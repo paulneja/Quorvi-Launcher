@@ -6,6 +6,7 @@ import kotlinx.serialization.json.Json
 @Serializable
 data class RunSpec(
     val goal: String,
+    val label: String? = null,
     val origin: String = "command",
     val ciExecutionId: String? = null,
     val mode: String = "AUTO",

@@ -201,7 +201,7 @@ class CoreService : Service() {
         val origin = "chat:${job.chatId}"
         if (dao.busyRuns(origin, System.currentTimeMillis() - 30 * 60_000L) > 0) return false
         jobs.markContinued(job)
-        val spec = agents.engine.encode(com.paulneja.quorvi.agent.engine.RunSpec(goal = jobs.goal(job), origin = origin, chatId = job.chatId, jobId = job.note.id))
+        val spec = agents.engine.encode(com.paulneja.quorvi.agent.engine.RunSpec(goal = jobs.goal(job), label = getString(R.string.job_run_title, job.note.title), origin = origin, chatId = job.chatId, jobId = job.note.id))
         return runs.submit(spec).isNotEmpty().also { if (it) promote() }
     }
 

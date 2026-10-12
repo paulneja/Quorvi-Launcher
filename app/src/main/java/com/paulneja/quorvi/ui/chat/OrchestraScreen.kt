@@ -119,18 +119,6 @@ fun OrchestraScreen(vm: ChatViewModel, onBack: () -> Unit, onModels: () -> Unit)
             item { OrchestraDiagram(o) }
             item {
                 Card {
-                    Text(stringResource(R.string.orc_how_title), style = Quorvi.type.action.copy(fontWeight = FontWeight.SemiBold), color = Quorvi.colors.text)
-                    listOf(R.string.orc_how_1, R.string.orc_how_2, R.string.orc_how_3, R.string.orc_how_4).forEachIndexed { i, s ->
-                        Row(Modifier.padding(top = 8.dp)) {
-                            Text("${i + 1}", style = Quorvi.type.caption.copy(fontWeight = FontWeight.SemiBold), color = Quorvi.colors.onAccent, modifier = Modifier.size(20.dp).clip(CircleShape).background(Quorvi.colors.accent).padding(top = 2.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                            Spacer(Modifier.width(10.dp))
-                            Text(stringResource(s), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-            item {
-                Card {
                     Label(stringResource(R.string.orc_coordinator), stringResource(R.string.orc_coordinator_desc), Glyphs.Sparkle)
                     ModelSummary(o.coordinator, providers, stringResource(R.string.orc_default_model), onModels)
                 }

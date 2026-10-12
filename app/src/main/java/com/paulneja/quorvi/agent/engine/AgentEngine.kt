@@ -154,8 +154,9 @@ class AgentEngine(
         val id = UUID.randomUUID().toString()
         launch(id) {
             val now = clock()
-            dao.insertRun(RunEntity(id = id, origin = spec.origin, goal = spec.goal.take(4000), state = RunState.QUEUED.name, createdAt = now, updatedAt = now, policy = specJson))
-            dao.append(id, "user", "goal", spec.goal.take(4000), spec.ciExecutionId, now)
+            val shown = (spec.label ?: spec.goal).take(4000)
+            dao.insertRun(RunEntity(id = id, origin = spec.origin, goal = shown, state = RunState.QUEUED.name, createdAt = now, updatedAt = now, policy = specJson))
+            dao.append(id, "user", "goal", shown, spec.ciExecutionId, now)
             execute(id, spec, resuming = false)
         }
         return id
