@@ -125,7 +125,7 @@ object MarkdownParser {
             append(text.substring(last, m.range.first))
             val t = m.value
             when {
-                t.startsWith("**") || t.startsWith("__") -> withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(t.substring(2, t.length - 2)) }
+                t.startsWith("**") || t.startsWith("__") -> withStyle(SpanStyle(fontWeight = FontWeight.SemiBold)) { append(inline(t.substring(2, t.length - 2), code, link)) }
                 t.startsWith("`") -> withStyle(code) { append(" " + t.substring(1, t.length - 1) + " ") }
                 t.startsWith("[") -> {
                     val label = t.substring(1, t.indexOf("]("))

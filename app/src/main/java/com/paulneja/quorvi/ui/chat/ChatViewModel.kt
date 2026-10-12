@@ -104,6 +104,8 @@ class ChatViewModel @Inject constructor(
     val chatId: StateFlow<String?> = _chatId.asStateFlow()
 
     val chats: StateFlow<List<ChatEntity>> = repo.chats.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    suspend fun searchChats(query: String): Set<String> = runCatching { repo.search(query) }.getOrDefault(emptySet())
     val chat: StateFlow<ChatEntity?> = _chatId.flatMapLatest { id -> id?.let { repo.chat(it) } ?: flowOf(null) }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val messages: StateFlow<List<ChatMessageEntity>?> = _chatId.flatMapLatest { id -> id?.let { repo.messages(it) } ?: flowOf(emptyList()) }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
 

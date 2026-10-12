@@ -49,6 +49,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -120,6 +121,10 @@ import com.paulneja.quorvi.ui.design.liquidPress
 import com.paulneja.quorvi.ui.operations.OperationsActivity
 import com.paulneja.quorvi.ui.operations.PolicyViewModel
 import kotlinx.coroutines.launch
+import com.paulneja.quorvi.ui.chat.horizon.horizonAnchor
+import com.paulneja.quorvi.ui.chat.horizon.horizonHost
+import com.paulneja.quorvi.ui.chat.horizon.orbLit
+import com.paulneja.quorvi.ui.chat.horizon.orbTouch
 
 private enum class ChatPage { CHAT, ORCHESTRA, MEMORY, ULTRA, MODELS }
 
@@ -133,10 +138,14 @@ fun ChatApp(vm: ChatViewModel, policy: PolicyViewModel, initialPrompt: String?, 
     val voiceOn by vm.voiceEnabled.collectAsState()
     val voice = androidx.hilt.navigation.compose.hiltViewModel<com.paulneja.quorvi.voice.AssistantViewModel>(key = "chat-voice")
     val voiceContext = LocalContext.current
+    val voiceFocus = androidx.compose.ui.platform.LocalFocusManager.current
+    val voiceKeyboard = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
     val askMic = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { ok ->
         if (ok) voice.start(vm.chatId.value) else voiceMode = false
     }
     fun openVoice() {
+        voiceFocus.clearFocus(force = true)
+        voiceKeyboard?.hide()
         voiceMode = true
         val granted = androidx.core.content.ContextCompat.checkSelfPermission(voiceContext, android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (granted) voice.start(vm.chatId.value) else askMic.launch(android.Manifest.permission.RECORD_AUDIO)
@@ -209,6 +218,9 @@ private fun ChatHome(
         }
     }
 
+    val startMode by vm.pendingMode.collectAsState()
+    val horizon = com.paulneja.quorvi.ui.chat.horizon.rememberHorizon(startMode == com.paulneja.quorvi.agent.chat.ChatMode.ULTRA)
+    val busyNow = vm.live.collectAsState().value?.busy == true
     Box(Modifier.fillMaxSize()) {
         ChatDrawer(
             vm = vm,
@@ -235,10 +247,15 @@ private fun ChatHome(
                     clip = p > 0f
                     shadowElevation = 24f * p
                 }
-                .background(Brush.verticalGradient(listOf(Quorvi.colors.sunken, Quorvi.colors.content)))
                 .draggable(dragState, Orientation.Horizontal, onDragStopped = { velocity -> setDrawer(velocity > 600f || (velocity > -600f && drawer.value > 0.4f)) }),
         ) {
-            ChatMain(vm, policy, initialPrompt, onMenu = { setDrawer(true) }, onClose = onClose, onImage = onImage, onPickRepo = onPickRepo, onReasoning = onReasoning, onVoice = onVoice)
+            androidx.compose.runtime.CompositionLocalProvider(com.paulneja.quorvi.ui.chat.horizon.LocalHorizon provides horizon) {
+                com.paulneja.quorvi.ui.chat.horizon.NexoField(horizon, busyNow, Modifier.fillMaxSize())
+                Box(Modifier.fillMaxSize().horizonHost(horizon)) {
+                    ChatMain(vm, policy, horizon, initialPrompt, onMenu = { setDrawer(true) }, onClose = onClose, onImage = onImage, onPickRepo = onPickRepo, onReasoning = onReasoning, onVoice = onVoice)
+                }
+                com.paulneja.quorvi.ui.chat.horizon.HorizonOrb(horizon)
+            }
             if (drawer.value > 0f) {
                 Box(
                     Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.25f * drawer.value.coerceIn(0f, 1f)))
@@ -250,7 +267,7 @@ private fun ChatHome(
 }
 
 @Composable
-private fun ChatMain(vm: ChatViewModel, policy: PolicyViewModel, initialPrompt: String?, onMenu: () -> Unit, onClose: () -> Unit, onImage: (ChatAttachment) -> Unit, onPickRepo: () -> Unit, onReasoning: () -> Unit, onVoice: (() -> Unit)?) {
+private fun ChatMain(vm: ChatViewModel, policy: PolicyViewModel, horizon: com.paulneja.quorvi.ui.chat.horizon.HorizonState, initialPrompt: String?, onMenu: () -> Unit, onClose: () -> Unit, onImage: (ChatAttachment) -> Unit, onPickRepo: () -> Unit, onReasoning: () -> Unit, onVoice: (() -> Unit)?) {
     val pendingMode by vm.pendingMode.collectAsState()
     val pendingRepo by vm.pendingRepo.collectAsState()
     val chat by vm.chat.collectAsState()
@@ -270,6 +287,21 @@ private fun ChatMain(vm: ChatViewModel, policy: PolicyViewModel, initialPrompt: 
     }
     val busy = live?.busy == true
     val waitingQuestion = live?.state == RunState.WAITING_USER
+    val motion = Quorvi.motion.enabled
+    val switchScope = rememberCoroutineScope()
+    val switchHaptics = com.paulneja.quorvi.ui.design.rememberHaptics()
+    var guided by remember { mutableStateOf(false) }
+    val wantUltra = if (messages?.isEmpty() != false) pendingMode == com.paulneja.quorvi.agent.chat.ChatMode.ULTRA else chat?.ultra == true
+    LaunchedEffect(wantUltra) { if (!guided) horizon.snap(wantUltra) }
+    val shownUltra by remember(horizon) { derivedStateOf { horizon.phase >= 0.5f } }
+    fun switchMode(mode: String) {
+        if (mode == pendingMode) return
+        guided = true
+        vm.setPendingMode(mode)
+        switchScope.launch {
+            try { horizon.go(mode == com.paulneja.quorvi.agent.chat.ChatMode.ULTRA, motion) { switchHaptics.pickup() } } finally { guided = false }
+        }
+    }
 
     Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))) {
         Row(Modifier.fillMaxWidth().height(56.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -291,24 +323,37 @@ private fun ChatMain(vm: ChatViewModel, policy: PolicyViewModel, initialPrompt: 
 
         Box(Modifier.weight(1f)) {
             val list = messages
-            if (list != null && list.isEmpty()) {
+            AnimatedContent(
+                targetState = list?.isEmpty(),
+                transitionSpec = {
+                    if (initialState == true && targetState == false) {
+                        (fadeIn(tween(320, delayMillis = 160)) + slideInVertically(spring(dampingRatio = 0.8f, stiffness = 260f)) { it / 6 }) togetherWith
+                            (fadeOut(tween(260)) + scaleOut(tween(380), targetScale = 0.72f, transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.32f)) + slideOutVertically(tween(380)) { -it / 5 })
+                    } else {
+                        fadeIn(tween(200)) togetherWith fadeOut(tween(140))
+                    }
+                },
+                label = "empty",
+            ) { empty ->
+            if (empty == true) {
                 Column(Modifier.fillMaxSize()) {
                     Column(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        ModeSwitch(pendingMode) { vm.setPendingMode(it) }
-                        AnimatedVisibility(pendingMode == com.paulneja.quorvi.agent.chat.ChatMode.ULTRA, enter = expandVertically(spring(dampingRatio = 0.7f)) + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+                        ModeSwitch(pendingMode) { switchMode(it) }
+                        AnimatedVisibility(shownUltra, enter = expandVertically(spring(dampingRatio = 0.7f)) + fadeIn(), exit = shrinkVertically() + fadeOut()) {
                             Box(Modifier.padding(top = 10.dp)) { RepoChip(pendingRepo, onPickRepo) }
                         }
                     }
                     Box(Modifier.weight(1f)) {
-                        EmptyState(noProvider = providers.isEmpty(), ultra = pendingMode == com.paulneja.quorvi.agent.chat.ChatMode.ULTRA, onSuggestion = { draft = it }, onAccounts = {
+                        EmptyState(horizon, noProvider = providers.isEmpty(), ultra = shownUltra, onSuggestion = { draft = it }, onAccounts = {
                             runCatching { context.startActivity(com.paulneja.quorvi.ui.settings.SettingsActivity.intent(context, com.paulneja.quorvi.ui.settings.SettingsModule.AI)) }
                         })
                     }
                 }
-            } else if (list != null) {
+            } else if (empty == false) {
                 androidx.compose.runtime.CompositionLocalProvider(LocalUltra provides (chat?.ultra == true)) {
-                    MessageList(vm, policy, list, onImage)
+                    MessageList(vm, policy, messages.orEmpty(), onImage)
                 }
+            }
             }
         }
 
@@ -392,7 +437,7 @@ private fun MessageList(vm: ChatViewModel, policy: PolicyViewModel, messages: Li
 }
 
 @Composable
-private fun EmptyState(noProvider: Boolean, ultra: Boolean, onSuggestion: (String) -> Unit, onAccounts: () -> Unit) {
+private fun EmptyState(horizon: com.paulneja.quorvi.ui.chat.horizon.HorizonState, noProvider: Boolean, ultra: Boolean, onSuggestion: (String) -> Unit, onAccounts: () -> Unit) {
     val hour = remember { java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY) }
     val greeting = stringResource(
         when (hour) {
@@ -413,7 +458,7 @@ private fun EmptyState(noProvider: Boolean, ultra: Boolean, onSuggestion: (Strin
         Triple(Glyphs.Terminal, R.string.chat_sug_code, R.string.chat_sug_code_fill),
     )
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        ModeOrb(104.dp, ultra)
+        ModeOrb(104.dp, ultra, instant = true, modifier = Modifier.horizonAnchor(horizon).orbTouch())
         Spacer(Modifier.height(22.dp))
         Text(greeting, style = Quorvi.type.headline.copy(fontSize = 28.sp, fontWeight = FontWeight.SemiBold), color = Quorvi.colors.text, textAlign = TextAlign.Center, modifier = Modifier.entrance(true))
         Text(stringResource(if (ultra) R.string.ultra_hello_sub else R.string.chat_hello_sub), style = Quorvi.type.body, color = Quorvi.colors.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 6.dp).entrance(true))
@@ -426,6 +471,9 @@ private fun EmptyState(noProvider: Boolean, ultra: Boolean, onSuggestion: (Strin
                 Text(stringResource(R.string.chat_no_model_body), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.padding(top = 4.dp))
             }
         } else {
+            val keyboard = WindowInsets.ime.getBottom(LocalDensity.current) > 0
+            AnimatedVisibility(!keyboard, enter = fadeIn(tween(180)) + expandVertically(), exit = fadeOut(tween(120)) + shrinkVertically()) {
+            Column {
             suggestions.chunked(2).forEachIndexed { row, pair ->
                 Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     pair.forEachIndexed { col, (glyph, label, fill) ->
@@ -433,7 +481,7 @@ private fun EmptyState(noProvider: Boolean, ultra: Boolean, onSuggestion: (Strin
                         StaggeredCard(delay = (row * 2 + col) * 70, modifier = Modifier.weight(1f)) {
                             val source = remember { MutableInteractionSource() }
                             Column(
-                                Modifier.fillMaxWidth().height(92.dp).liquidPress(source).liquidGlass(RoundedCornerShape(22.dp), GlassLevel.PANEL)
+                                Modifier.fillMaxWidth().height(92.dp).liquidPress(source).liquidGlass(RoundedCornerShape(22.dp), GlassLevel.PANEL).orbLit(22.dp)
                                     .clickable(interactionSource = source, indication = null) { onSuggestion(fillText) }.padding(14.dp),
                                 verticalArrangement = Arrangement.SpaceBetween,
                             ) {
@@ -443,6 +491,8 @@ private fun EmptyState(noProvider: Boolean, ultra: Boolean, onSuggestion: (Strin
                         }
                     }
                 }
+            }
+            }
             }
         }
     }
@@ -533,7 +583,7 @@ private fun mentionOptions(ultra: Boolean, orchestra: com.paulneja.quorvi.agent.
     add(MentionOption("investigar", stringResource(R.string.mention_research), stringResource(R.string.mention_research_desc), Glyphs.Search))
     if (!ultra) add(MentionOption("ultra", stringResource(R.string.mention_ultra), stringResource(R.string.mention_ultra_desc), Glyphs.Git))
     if (orchestra.enabled) orchestra.delegates.forEach { s ->
-        val word = com.paulneja.quorvi.agent.chat.Mentions.aliases.entries.first { it.value == s }.key
+        val word = com.paulneja.quorvi.agent.chat.Mentions.aliases.entries.firstOrNull { it.value == s }?.key ?: return@forEach
         add(MentionOption(word, s.name, specialistBlurb(s), s.glyph()))
     }
 }
@@ -585,7 +635,7 @@ private fun Composer(
             }
         }
         Row(
-            Modifier.fillMaxWidth().liquidGlass(RoundedCornerShape(28.dp), GlassLevel.CHROME).padding(6.dp),
+            Modifier.fillMaxWidth().liquidGlass(RoundedCornerShape(28.dp), GlassLevel.CHROME).orbLit(28.dp, 0.8f).padding(6.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
             val turn by androidx.compose.animation.core.animateFloatAsState(if (menu) 45f else 0f, spring(dampingRatio = 0.5f, stiffness = 500f), label = "turn")
@@ -693,7 +743,9 @@ private fun ChatDrawer(
     var ultraTab by rememberSaveable { mutableStateOf(chats.firstOrNull { it.id == current }?.ultra == true) }
     LaunchedEffect(current) { chats.firstOrNull { it.id == current }?.let { ultraTab = it.ultra } }
     val shownChats = chats.filter { it.ultra == ultraTab }
-    val groups = remember(chats, query, ultraTab) { ChatLogic.grouped(shownChats.filter { query.isBlank() || it.title.contains(query, ignoreCase = true) }, now) }
+    var matches by remember { mutableStateOf(emptySet<String>()) }
+    LaunchedEffect(query) { kotlinx.coroutines.delay(150); matches = vm.searchChats(query) }
+    val groups = remember(chats, query, ultraTab, matches) { ChatLogic.grouped(shownChats.filter { query.isBlank() || it.title.contains(query, ignoreCase = true) || it.id in matches }, now) }
     Column(
         modifier.graphicsLayer {
             val p = progress()
@@ -731,7 +783,7 @@ private fun ChatDrawer(
                         onRename = { vm.rename(c.id, it); editing = null }, onDelete = { vm.delete(c.id); editing = null })
                 }
             }
-            if (shownChats.isEmpty()) item { Text(stringResource(if (ultraTab) R.string.chat_none_ultra else R.string.chat_none), style = Quorvi.type.caption, color = Quorvi.colors.textTertiary, modifier = Modifier.padding(12.dp)) }
+            if (groups.isEmpty()) item { Text(stringResource(if (query.isNotBlank()) R.string.chat_search_none else if (ultraTab) R.string.chat_none_ultra else R.string.chat_none), style = Quorvi.type.caption, color = Quorvi.colors.textTertiary, modifier = Modifier.padding(12.dp)) }
         }
         Box(Modifier.fillMaxWidth().height(1.dp).background(Quorvi.colors.border))
         DrawerRow(Glyphs.Orchestra, stringResource(R.string.orc_title), onClick = onOrchestra)

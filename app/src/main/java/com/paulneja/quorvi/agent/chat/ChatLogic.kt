@@ -12,6 +12,8 @@ object ChatLogic {
     const val ATTACHED = 3
     const val TEXT_LIMIT = 60_000
 
+    fun fold(text: String): String = java.text.Normalizer.normalize(text.lowercase(), java.text.Normalizer.Form.NFD).replace(Regex("\\p{Mn}+"), "")
+
     fun titleFrom(text: String): String {
         val line = text.trim().lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
 

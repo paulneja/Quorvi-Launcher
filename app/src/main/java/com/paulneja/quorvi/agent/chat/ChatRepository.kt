@@ -54,9 +54,15 @@ class ChatRepository @Inject constructor(
         if (mentions.ultra && dao.chat(id)?.ultra != true) offer(id, context.getString(com.paulneja.quorvi.R.string.ultra_offer_asked))
         val spec = json.encodeToString(RunSpec.serializer(), spec(goal, id, mentions).copy(voice = voice))
         if (core.submitRun(spec) == null) {
-            dao.upsertMessage(ChatMessageEntity(UUID.randomUUID().toString(), id, ChatRole.ASSISTANT, "", ChatStatus.ERROR, null, System.currentTimeMillis()))
+            dao.upsertMessage(ChatMessageEntity(UUID.randomUUID().toString(), id, ChatRole.ASSISTANT, context.getString(com.paulneja.quorvi.R.string.chat_core_down), ChatStatus.ERROR, null, System.currentTimeMillis()))
         }
         return id
+    }
+
+    suspend fun search(query: String): Set<String> {
+        val q = ChatLogic.fold(query.trim())
+        if (q.isEmpty()) return emptySet()
+        return dao.searchable().filter { ChatLogic.fold(it.text).contains(q) }.mapTo(mutableSetOf()) { it.chatId }
     }
 
     suspend fun retry(chatId: String) {
@@ -165,7 +171,11 @@ class ChatRepository @Inject constructor(
     }
 
     private suspend fun ready() {
-        withTimeoutOrNull(6_000) { core.connected.filterNotNull().first() }
+        if (core.connected.value != null) return
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { core.ensure() }
+        if (withTimeoutOrNull(6_000) { core.connected.filterNotNull().first() } != null) return
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) { core.wake() }
+        withTimeoutOrNull(15_000) { core.connected.filterNotNull().first() }
     }
 
     private suspend fun pendingQuestion(chatId: String): String? {

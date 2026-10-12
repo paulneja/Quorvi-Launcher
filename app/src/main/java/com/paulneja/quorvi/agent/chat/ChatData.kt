@@ -88,6 +88,9 @@ interface ChatDao {
     @Query("SELECT * FROM chats ORDER BY updatedAt DESC")
     fun observeChats(): Flow<List<ChatEntity>>
 
+    @Query("SELECT chatId, text FROM chat_messages WHERE role IN ('user', 'assistant') ORDER BY createdAt DESC LIMIT 4000")
+    suspend fun searchable(): List<ChatText>
+
     @Query("SELECT * FROM chats WHERE id = :id")
     fun observeChat(id: String): Flow<ChatEntity?>
 
@@ -149,3 +152,5 @@ interface ChatDao {
     @Query("DELETE FROM chats")
     suspend fun deleteAll()
 }
+
+data class ChatText(val chatId: String, val text: String)

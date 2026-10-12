@@ -87,4 +87,9 @@ class ChatLogicTest {
         assertEquals(MdBlock.Bullet("primero", 0, "1"), blocks[4])
         assertEquals(MdBlock.Code("kotlin", "val x = 1", closed = false), blocks[5])
     }
+
+    @Test
+    fun searchIgnoresAccentsAndCase() {
+        org.junit.Assert.assertTrue(com.paulneja.quorvi.agent.chat.ChatLogic.fold("Pronóstico para CAMPANA").contains(com.paulneja.quorvi.agent.chat.ChatLogic.fold("pronostico")))
+    }
 }

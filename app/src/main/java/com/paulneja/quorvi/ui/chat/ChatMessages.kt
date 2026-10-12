@@ -90,6 +90,9 @@ import com.paulneja.quorvi.ui.operations.ApprovalCard
 import com.paulneja.quorvi.ui.operations.PolicyViewModel
 import com.paulneja.quorvi.ui.operations.runStateLabel
 import java.io.File
+import com.paulneja.quorvi.ui.chat.horizon.launchIn
+import com.paulneja.quorvi.ui.chat.horizon.lightSweep
+import com.paulneja.quorvi.ui.chat.horizon.orbLit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -113,7 +116,7 @@ fun Modifier.entrance(animate: Boolean, fromBelow: Boolean = true): Modifier {
 @Composable
 fun UserBubble(m: ChatMessageEntity, animate: Boolean, onImage: (ChatAttachment) -> Unit) {
     val clipboard = LocalClipboardManager.current
-    Column(Modifier.fillMaxWidth().padding(start = 48.dp).entrance(animate), horizontalAlignment = Alignment.End) {
+    Column(Modifier.fillMaxWidth().padding(start = 48.dp).launchIn(animate), horizontalAlignment = Alignment.End) {
         val files = m.files
         if (files.isNotEmpty()) {
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -126,6 +129,7 @@ fun UserBubble(m: ChatMessageEntity, animate: Boolean, onImage: (ChatAttachment)
                 modifier = Modifier
                     .clip(RoundedCornerShape(22.dp, 22.dp, 6.dp, 22.dp))
                     .background(Brush.linearGradient(listOf(Quorvi.colors.accent.copy(alpha = 0.30f), Quorvi.colors.accent.copy(alpha = 0.18f))))
+                    .orbLit(20.dp, 0.7f)
                     .combinedClickable(onClick = {}, onLongClick = { clipboard.setText(AnnotatedString(m.text)) })
                     .padding(horizontal = 15.dp, vertical = 10.dp),
             )
@@ -146,10 +150,11 @@ fun AssistantMessage(
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
     val streaming = m.status == ChatStatus.STREAMING
+    val sweepable = remember(m.id) { streaming || animate }
     Row(Modifier.fillMaxWidth().entrance(animate, fromBelow = false), verticalAlignment = Alignment.Top) {
         NexoAvatar(working = runView?.busy == true, size = 28.dp)
         Spacer(Modifier.width(10.dp))
-        Column(Modifier.weight(1f).animateContentSize(spring(stiffness = Spring.StiffnessMediumLow))) {
+        Column(Modifier.weight(1f).animateContentSize(spring(stiffness = Spring.StiffnessMediumLow)).lightSweep(if (streaming) null else m.status, sweepable && !streaming)) {
             if (runView != null && runView.steps.isNotEmpty()) ActivityStrip(runView)
             when {
                 m.status == ChatStatus.ERROR -> ErrorCard(m.text, onRetry)
@@ -207,7 +212,8 @@ private fun Thinking(runView: RunView?) {
         repeat(3) { i ->
             val local = ((phase - i * 0.16f) % 1f + 1f) % 1f
             val lift = if (local < 0.5f) kotlin.math.sin(local * 2f * Math.PI).toFloat() else 0f
-            Box(Modifier.padding(horizontal = 2.5.dp).graphicsLayer { translationY = -lift * 6.dp.toPx(); alpha = 0.45f + 0.55f * lift }.size(7.dp).clip(CircleShape).background(Quorvi.colors.accent))
+            val tint = com.paulneja.quorvi.ui.chat.horizon.LocalHorizon.current?.tint(Quorvi.colors.accent) ?: Quorvi.colors.accent
+            Box(Modifier.padding(horizontal = 2.5.dp).graphicsLayer { translationY = -lift * 6.dp.toPx(); alpha = 0.45f + 0.55f * lift; val s = 0.8f + 0.45f * lift; scaleX = s; scaleY = s }.size(7.dp).clip(CircleShape).background(tint))
         }
         if (runView?.steps.isNullOrEmpty()) {
             Spacer(Modifier.width(10.dp))
@@ -294,6 +300,7 @@ private fun StepRow(s: StepEntity, last: Boolean) {
         Column(Modifier.weight(1f).padding(bottom = 10.dp).clickable(enabled = !s.output.isNullOrBlank()) { expanded = !expanded }) {
             Text(stepLabel(s), style = Quorvi.type.caption.copy(fontWeight = FontWeight.Medium), color = Quorvi.colors.text)
             if (s.kind.startsWith("delegate:")) Text(s.title, style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, maxLines = if (expanded) 20 else 2, overflow = TextOverflow.Ellipsis)
+            else if (s.toolName != null && s.title != s.toolName) Text(s.title, style = Quorvi.type.mono.copy(fontSize = 12.sp), color = Quorvi.colors.textSecondary, maxLines = if (expanded) 4 else 1, overflow = TextOverflow.Ellipsis)
             if (expanded) s.output?.let {
                 Text(it.take(3000), style = Quorvi.type.mono.copy(fontSize = 12.sp), color = Quorvi.colors.textSecondary, modifier = Modifier.padding(top = 6.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF07090D)).padding(10.dp))
             }
@@ -327,6 +334,13 @@ fun stepLabel(s: StepEntity): String {
     )
     val tool = (s.toolName ?: s.title).replace('_', '.')
     return when {
+        tool.startsWith("weather") -> stringResource(R.string.act_weather)
+        tool == "repo.clone" -> stringResource(R.string.act_repo_clone)
+        tool == "ws.list" || tool == "ws.read" -> stringResource(R.string.act_repo_read)
+        tool == "ws.write" || tool == "ws.edit" -> stringResource(R.string.act_repo_edit)
+        tool == "ws.run" -> stringResource(R.string.act_repo_run)
+        tool == "ws.changes" -> stringResource(R.string.act_repo_changes)
+        tool.startsWith("github.") -> stringResource(R.string.act_github)
         tool.startsWith("web.search") -> stringResource(R.string.act_web_search)
         tool.startsWith("web.fetch") -> stringResource(R.string.act_web_fetch)
         tool.startsWith("shell") || tool.startsWith("priv") || tool.startsWith("root") -> stringResource(R.string.act_shell)
