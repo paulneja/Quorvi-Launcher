@@ -78,6 +78,7 @@ fun PageTemplate.glyph(): ImageVector = when (this) {
     PageTemplate.NEXO -> Glyphs.Agent
     PageTemplate.APPS -> Glyphs.Apps
     PageTemplate.EMPTY -> Glyphs.Widgets
+    PageTemplate.TERMINAL -> Glyphs.Terminal
     PageTemplate.START, PageTemplate.MINIMAL -> Glyphs.Home
 }
 
@@ -90,6 +91,7 @@ fun PageTemplate.label(): String = stringResource(
         PageTemplate.NEXO -> R.string.page_nexo
         PageTemplate.APPS -> R.string.page_apps
         PageTemplate.EMPTY -> R.string.page_empty
+        PageTemplate.TERMINAL -> R.string.page_terminal
         PageTemplate.START, PageTemplate.MINIMAL -> R.string.page_home
     },
 )
@@ -292,7 +294,7 @@ fun PagesSheet(
                 } else {
                     Text(stringResource(R.string.pages_pick_template), style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.padding(top = 14.dp, bottom = 8.dp, start = 4.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(listOf(PageTemplate.TODAY, PageTemplate.CONTROL, PageTemplate.NEXO, PageTemplate.APPS, PageTemplate.EMPTY)) { t ->
+                        items(listOf(PageTemplate.TODAY, PageTemplate.CONTROL, PageTemplate.NEXO, PageTemplate.TERMINAL, PageTemplate.APPS, PageTemplate.EMPTY)) { t ->
                             ChipButton(t.label(), t.glyph(), { adding = false; onAdd(t) })
                         }
                     }

@@ -39,7 +39,7 @@ object BlockKinds {
     fun of(kind: String): BlockKind? = byId[kind] ?: byId[kind.substringBefore(':')]?.takeIf { kind.contains(':') }
 }
 
-enum class PageTemplate { HOME, TODAY, CONTROL, NEXO, APPS, EMPTY, START, MINIMAL }
+enum class PageTemplate { HOME, TODAY, CONTROL, NEXO, APPS, EMPTY, START, MINIMAL, TERMINAL }
 
 data class SeedBlock(val kind: String, val rect: CellRect)
 
@@ -49,7 +49,7 @@ object PageTemplates {
         PageTemplate.TODAY -> flow(spec, listOf("today" to listOf(BlockSize.L), "media" to listOf(BlockSize.M), "notifications" to listOf(BlockSize.M), "apps" to listOf(BlockSize.L, BlockSize.W), "photos" to listOf(BlockSize.L)))
         PageTemplate.CONTROL -> flow(spec, listOf("toggles" to listOf(BlockSize.L), "system" to listOf(BlockSize.M), "timer" to listOf(BlockSize.M), "capsules" to listOf(BlockSize.W), "contacts" to listOf(BlockSize.S), "note" to listOf(BlockSize.S)))
         PageTemplate.NEXO -> flow(spec, listOf("agents" to listOf(BlockSize.L), "ci" to listOf(BlockSize.M), "ha" to listOf(BlockSize.M), "hosts" to listOf(BlockSize.W), "http" to listOf(BlockSize.W)))
-        PageTemplate.APPS, PageTemplate.EMPTY -> emptyList()
+        PageTemplate.APPS, PageTemplate.EMPTY, PageTemplate.TERMINAL -> emptyList()
         PageTemplate.START -> listOf(SeedBlock("clock", CellRect(0, 0, spec.columns, 2)))
         PageTemplate.MINIMAL -> listOf(SeedBlock("clock", CellRect(0, 0, spec.columns, 2)), SeedBlock("favlist", CellRect(0, 2, spec.columns, spec.rows - 2)))
     }

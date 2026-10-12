@@ -47,6 +47,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
@@ -180,6 +182,9 @@ fun CanvasScreen(
         editProgress.animateTo(if (editing) 1f else 0f, motion.settle())
     }
     val pager = rememberPagerState { canvas.pageCount + if (dragging || editing) 1 else 0 }
+    val terminalContext = androidx.compose.ui.platform.LocalContext.current
+    val terminalPane = remember { lazy { newTerminalPane(terminalContext) } }
+    androidx.compose.runtime.DisposableEffect(Unit) { onDispose { if (terminalPane.isInitialized()) terminalPane.value.release() } }
     var openFolderId by remember { mutableStateOf<Long?>(null) }
     val folderProgress = remember { Animatable(0f) }
     var showWidgets by remember { mutableStateOf(false) }
@@ -476,7 +481,8 @@ fun CanvasScreen(
             if (!isDefaultHome) DefaultHomeBanner(callbacks.makeDefault)
             var glassHintDismissed by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
             androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { if (wallpaper.image == null) viewModel.refreshWallpaper() }
-            if (wallpaper.image == null && !wallpaper.systemIsLive && !glassHintDismissed && !editing && LIQUID && !Quorvi.look.minimalChrome && !Quorvi.look.glass.material) {
+            val terminalNow = !editing && canvas.pageMeta.getOrNull(pager.settledPage)?.template == com.paulneja.quorvi.launcher.home.PageTemplate.TERMINAL
+            if (wallpaper.image == null && !wallpaper.systemIsLive && !glassHintDismissed && !editing && !terminalNow && LIQUID && !Quorvi.look.minimalChrome && !Quorvi.look.glass.material) {
                 val rootAvailable by viewModel.rootAvailable.collectAsStateWithLifecycle()
                 val photoPicker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
                     if (uri != null) viewModel.setWallpaper(uri, false)
@@ -494,7 +500,8 @@ fun CanvasScreen(
                 )
             }
             val look = Quorvi.look
-            if (!editing && look.showPill && !look.minimalChrome) {
+            val onTerminal = !editing && canvas.pageMeta.getOrNull(pager.settledPage)?.template == com.paulneja.quorvi.launcher.home.PageTemplate.TERMINAL
+            if (!editing && (look.showPill || onTerminal) && (!look.minimalChrome || onTerminal)) {
                 Box(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = 2.dp), contentAlignment = Alignment.Center) {
                     val current = pager.currentPage.coerceIn(0, canvas.pageCount - 1)
                     PagePill(canvas.pageMeta[current].name(current), canvas.pageCount, current, showPages, onClick = { if (drawer.closed) showPages = !showPages })
@@ -502,13 +509,15 @@ fun CanvasScreen(
             }
             Box(
                 Modifier
-                    .then(if (landscape) Modifier.height((portraitCellDp * spec.rows).dp) else Modifier.weight(1f))
-                    .padding(horizontal = 8.dp)
+                    .then(if (landscape && !onTerminal) Modifier.height((portraitCellDp * spec.rows).dp) else Modifier.weight(1f))
+                    .then(if (onTerminal) Modifier.imePadding() else Modifier.padding(horizontal = 8.dp))
                     .onGloballyPositioned { geometry.grid = it.boundsInRoot() },
             ) {
                 HorizontalPager(state = pager, modifier = Modifier.fillMaxSize(), beyondViewportPageCount = 1, key = { it }) { page ->
                     val coords = remember { CoordsHolder() }
-                    CellLayout(
+                    if (canvas.pageMeta.getOrNull(page)?.template == com.paulneja.quorvi.launcher.home.PageTemplate.TERMINAL) {
+                        TerminalPage(terminalPane)
+                    } else CellLayout(
                         spec = spec,
                         nodes = canvas.pages.getOrNull(page).orEmpty(),
                         highlight = (drag.target as? DropTarget.Cell)?.takeIf { it.page == page }?.rect,
@@ -559,12 +568,12 @@ fun CanvasScreen(
                         if (BuildConfig.LABS) add(EditAction(labels.labs, Glyphs.Labs) { callbacks.openLabs() })
                     },
                 )
-            } else if (!look.minimalChrome) {
+            } else if (!look.minimalChrome && !onTerminal) {
                 androidx.compose.animation.AnimatedVisibility(
                     visible = !dragging && activeRuns.isNotEmpty(),
                     enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
                     exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically(),
-                ) { AgentIndicatorBar(activeRuns, agentIndicator, onOpen = callbacks.openAgents) }
+                ) { AgentIndicatorBar(activeRuns, agentIndicator, onOpen = callbacks.openAgents, onDismiss = { viewModel.dismissRuns(activeRuns) }) }
                 if (canvas.pageCount > 1 && look.showBar) {
                     Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         PanelBar(
@@ -581,7 +590,7 @@ fun CanvasScreen(
                     SearchBar(stringResource(R.string.search_hint), onClick = { showCommand = true }, modifier = Modifier.padding(top = 6.dp))
                 }
             }
-            if (!look.minimalChrome || editing) Dock(
+            if ((!look.minimalChrome || editing) && !onTerminal) Dock(
                 nodes = canvas.dock,
                 slots = spec.dockSize,
                 highlightSlot = (drag.target as? DropTarget.Dock)?.slot,
@@ -948,6 +957,35 @@ data class MenuLabels(
             stringResource(R.string.edit_done), stringResource(R.string.edit_remove_page), stringResource(R.string.edit_remove_page_confirm),
             stringResource(R.string.menu_edit_home),
             stringResource(R.string.menu_unsuggest), stringResource(R.string.menu_resuggest), stringResource(R.string.menu_glass),
+        )
+    }
+}
+
+private fun newTerminalPane(context: android.content.Context): com.paulneja.quorvi.runtime.TerminalPane {
+    lateinit var pane: com.paulneja.quorvi.runtime.TerminalPane
+    pane = com.paulneja.quorvi.runtime.TerminalPane(
+        context,
+        title = null,
+        onStorage = {
+            val activity = context as? android.app.Activity
+            if (activity != null && activity.checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                activity.requestPermissions(arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.WRITE_EXTERNAL_STORAGE), 7)
+            } else pane.linkStorage()
+        },
+        onExit = { pane.start() },
+    )
+    return pane
+}
+
+@Composable
+private fun TerminalPage(pane: Lazy<com.paulneja.quorvi.runtime.TerminalPane>) {
+    Box(
+        Modifier.fillMaxSize()
+            .background(androidx.compose.ui.graphics.Color(com.paulneja.quorvi.runtime.TerminalPane.BG)),
+    ) {
+        androidx.compose.ui.viewinterop.AndroidView(
+            factory = { pane.value.also { v -> (v.parent as? android.view.ViewGroup)?.removeView(v); v.start() } },
+            modifier = Modifier.fillMaxSize(),
         )
     }
 }

@@ -103,7 +103,16 @@ class HomeRepository @Inject constructor(
     }
 
     private suspend fun pageRects(exclude: Long? = null, backdrop: Boolean = false): Map<Int, List<CellRect>> =
-        dao.all().filter { it.container == Container.PAGE && it.id != exclude && it.backdrop == backdrop }.groupBy({ it.page }, { it.rect })
+        withClosedPages(dao.all().filter { it.container == Container.PAGE && it.id != exclude && it.backdrop == backdrop }.groupBy({ it.page }, { it.rect }))
+
+    private suspend fun closedPages(): Set<Int> = dao.pages().filter { it.template == PageTemplate.TERMINAL.name }.map { it.page }.toSet()
+
+    private suspend fun withClosedPages(byPage: Map<Int, List<CellRect>>): Map<Int, List<CellRect>> {
+        val closed = closedPages()
+        if (closed.isEmpty()) return byPage
+        val full = CellRect(0, 0, spec.value.columns, spec.value.rows)
+        return byPage + closed.associateWith { listOf(full) }
+    }
 
     suspend fun addApp(app: AppEntry, container: Int = Container.PAGE): PlaceResult = writes.withLock {
         val key = app.key.encode()
@@ -230,6 +239,35 @@ class HomeRepository @Inject constructor(
         released
     }
 
+    private val terminalOffer = kotlinx.coroutines.sync.Mutex()
+
+    private suspend fun rescueFrom(page: Int) = writes.withLock {
+        val stuck = dao.all().filter { it.container == Container.PAGE && it.page == page }
+        for (item in stuck) {
+            val spot = CellGrid.findFreeOnPages(spec.value, pageRects(exclude = item.id, backdrop = item.backdrop), item.spanX, item.spanY)
+            if (spot != null) dao.update(item.copy(page = spot.first, cellX = spot.second.x, cellY = spot.second.y))
+            else dao.update(item.copy(page = addPageLocked()))
+        }
+    }
+
+    private suspend fun addPageLocked(): Int {
+        val items = dao.all()
+        val pages = dao.pages()
+        val index = maxOf(items.filter { it.container == Container.PAGE }.maxOfOrNull { it.page } ?: -1, pages.maxOfOrNull { it.page } ?: -1) + 1
+        dao.upsertPages(listOf(HomePageEntity(index, PageTemplate.EMPTY.name, null)))
+        return index
+    }
+
+    suspend fun offerTerminalPage() = terminalOffer.withLock {
+        val terminals = dao.pages().filter { it.template == PageTemplate.TERMINAL.name }.map { it.page }.sorted()
+        terminals.drop(1).asReversed().forEach { removePage(it) }
+        terminals.firstOrNull()?.let { rescueFrom(it) }
+        if (settings.terminalPageOffered()) return@withLock
+        if (dao.pages().isEmpty() && dao.all().none { it.container == Container.PAGE }) return@withLock
+        settings.markTerminalPageOffered()
+        if (terminals.isEmpty()) addPage(PageTemplate.TERMINAL)
+    }
+
     suspend fun addPage(template: PageTemplate, title: String? = null): Int = writes.withLock {
         val items = dao.all()
         val pages = dao.pages()
@@ -305,7 +343,7 @@ class HomeRepository @Inject constructor(
         }
     }
 
-    private fun freeSlot(items: List<HomeItemEntity>, container: Int, w: Int, h: Int, startPage: Int = 0): Pair<Int, CellRect>? {
+    private suspend fun freeSlot(items: List<HomeItemEntity>, container: Int, w: Int, h: Int, startPage: Int = 0): Pair<Int, CellRect>? {
         val grid = spec.value
         return when (container) {
             Container.DOCK -> {
@@ -313,7 +351,7 @@ class HomeRepository @Inject constructor(
                 (0 until grid.dockSize).firstOrNull { it !in taken }?.let { 0 to CellRect(it, 0) }
             }
             else -> {
-                val byPage = items.filter { it.container == Container.PAGE && !it.backdrop }.groupBy({ it.page }, { it.rect })
+                val byPage = withClosedPages(items.filter { it.container == Container.PAGE && !it.backdrop }.groupBy({ it.page }, { it.rect }))
                 CellGrid.findFreeOnPages(grid, byPage, w, h, startPage) ?: CellGrid.findFreeOnPages(grid, byPage, w, h)
             }
         }
