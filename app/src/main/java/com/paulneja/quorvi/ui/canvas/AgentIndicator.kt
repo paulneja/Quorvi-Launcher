@@ -22,6 +22,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.gestures.draggable
+import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.pluralStringResource
@@ -40,7 +43,7 @@ import com.paulneja.quorvi.ui.design.liquidGlass
 private val attention = setOf(RunState.WAITING_USER.name, RunState.WAITING_CAPABILITY.name, RunState.INTERRUPTED.name)
 
 @Composable
-fun AgentIndicatorBar(runs: List<RunEntity>, mode: AgentIndicator, onOpen: () -> Unit) {
+fun AgentIndicatorBar(runs: List<RunEntity>, mode: AgentIndicator, onOpen: () -> Unit, onDismiss: () -> Unit = {}) {
     if (runs.isEmpty() || mode == AgentIndicator.OFF || mode == AgentIndicator.OPERATIONS_ONLY) return
     val needsYou = runs.firstOrNull { it.state in attention }
 
@@ -57,9 +60,30 @@ fun AgentIndicatorBar(runs: List<RunEntity>, mode: AgentIndicator, onOpen: () ->
             }
             return@Box
         }
+        val offset = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0f) }
+        val scope = androidx.compose.runtime.rememberCoroutineScope()
+        val haptics = com.paulneja.quorvi.ui.design.rememberHaptics()
+        val dismissWidth = with(androidx.compose.ui.platform.LocalDensity.current) { 360.dp.toPx() }
+        val drag = androidx.compose.foundation.gestures.rememberDraggableState { d -> scope.launch { offset.snapTo(offset.value + d) } }
         Row(
             Modifier
                 .widthIn(max = 360.dp)
+                .graphicsLayer {
+                    translationX = offset.value
+                    alpha = (1f - kotlin.math.abs(offset.value) / (size.width.coerceAtLeast(1f) * 0.9f)).coerceIn(0f, 1f)
+                }
+                .draggable(drag, androidx.compose.foundation.gestures.Orientation.Horizontal, onDragStopped = { velocity ->
+                    val width = dismissWidth
+                    if (kotlin.math.abs(offset.value) > width * 0.35f || kotlin.math.abs(velocity) > 1800f) {
+                        haptics.snap()
+                        val dir = if (offset.value + velocity * 0.05f >= 0) 1f else -1f
+                        offset.animateTo(dir * width * 1.3f, androidx.compose.animation.core.tween(180))
+                        onDismiss()
+                        offset.snapTo(0f)
+                    } else {
+                        offset.animateTo(0f, androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 500f))
+                    }
+                })
                 .liquidGlass(Quorvi.shapes.panel, GlassLevel.CHROME)
                 .clickable(onClick = onOpen)
                 .padding(horizontal = 14.dp, vertical = 8.dp),

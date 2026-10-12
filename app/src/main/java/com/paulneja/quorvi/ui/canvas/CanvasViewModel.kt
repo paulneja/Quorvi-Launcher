@@ -90,9 +90,15 @@ class CanvasViewModel @Inject constructor(
 
     fun trigger(widget: com.paulneja.quorvi.connections.HttpWidgetEntity) = viewModelScope.launch { httpWidgets.trigger(widget) }
 
-    val activeRuns: StateFlow<List<com.paulneja.quorvi.ops.RunEntity>> = ops.observeRuns(20)
-        .map { runs -> runs.filter { runCatching { com.paulneja.quorvi.ops.RunState.valueOf(it.state) }.getOrNull()?.let { s -> !s.terminal } == true } }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val activeRuns: StateFlow<List<com.paulneja.quorvi.ops.RunEntity>> = kotlinx.coroutines.flow.combine(ops.observeRuns(20), settings.dismissedRuns) { runs, dismissed ->
+        val stale = System.currentTimeMillis() - 24 * 60 * 60 * 1000L
+        runs.filter { r ->
+            val state = runCatching { com.paulneja.quorvi.ops.RunState.valueOf(r.state) }.getOrNull() ?: return@filter false
+            !state.terminal && r.id !in dismissed && !(state == com.paulneja.quorvi.ops.RunState.INTERRUPTED && r.updatedAt < stale)
+        }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    fun dismissRuns(runs: List<com.paulneja.quorvi.ops.RunEntity>) = viewModelScope.launch { settings.dismissRuns(runs.map { it.id }) }
     val agentIndicator: StateFlow<com.paulneja.quorvi.core.settings.AgentIndicator> = settings.agentIndicator
         .stateIn(viewModelScope, SharingStarted.Eagerly, com.paulneja.quorvi.core.settings.AgentIndicator.COMPACT)
 
@@ -197,6 +203,7 @@ class CanvasViewModel @Inject constructor(
 
     init {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) { _rootAvailable.value = wallpapers.rootAvailable }
+        viewModelScope.launch { kotlinx.coroutines.delay(1_500); runCatching { home.offerTerminalPage() } }
     }
 
     fun wallpaperWithRoot(onDone: (Boolean) -> Unit) = viewModelScope.launch { onDone(wallpapers.importWithRoot()) }

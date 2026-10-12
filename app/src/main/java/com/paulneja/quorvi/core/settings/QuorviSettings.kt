@@ -77,6 +77,10 @@ class QuorviSettings @Inject constructor(@ApplicationContext private val context
 
     val hiddenApps: Flow<Set<String>> = store.data.map { it[HIDDEN].orEmpty() }
 
+    val dismissedRuns: Flow<Set<String>> = store.data.map { it[DISMISSED_RUNS].orEmpty() }
+
+    suspend fun dismissRuns(ids: Collection<String>) = store.edit { it[DISMISSED_RUNS] = (it[DISMISSED_RUNS].orEmpty() + ids).toList().takeLast(200).toSet() }
+
     val unsuggested: Flow<Set<String>> = store.data.map { it[UNSUGGESTED].orEmpty() }
 
     val backgroundProtection: Flow<Boolean> = store.data.map { it[BG_PROTECTION] == true }
@@ -127,6 +131,10 @@ class QuorviSettings @Inject constructor(@ApplicationContext private val context
     suspend fun markSeeded() = store.edit { it[SEEDED] = true }
 
     suspend fun markBentoSeeded() = store.edit { it[BENTO_SEEDED] = true }
+
+    suspend fun terminalPageOffered(): Boolean = store.data.first()[TERMINAL_PAGE] ?: false
+
+    suspend fun markTerminalPageOffered() = store.edit { it[TERMINAL_PAGE] = true }
 
     suspend fun setSuggested(appKey: String, suggested: Boolean) = store.edit {
         val current = it[UNSUGGESTED].orEmpty()
@@ -191,6 +199,7 @@ class QuorviSettings @Inject constructor(@ApplicationContext private val context
         val ROWS = intPreferencesKey("grid_rows")
         val SEEDED = booleanPreferencesKey("seeded")
         val BENTO_SEEDED = booleanPreferencesKey("bento_seeded")
+        val TERMINAL_PAGE = booleanPreferencesKey("terminal_page_offered")
         val WEATHER_PLACE = stringPreferencesKey("weather_place")
         val LOOK = stringPreferencesKey("look")
         val PRESET = stringPreferencesKey("home_preset")
@@ -198,6 +207,7 @@ class QuorviSettings @Inject constructor(@ApplicationContext private val context
         val APPLIED_COLUMNS = intPreferencesKey("applied_columns")
         val APPLIED_ROWS = intPreferencesKey("applied_rows")
         val HIDDEN = stringSetPreferencesKey("hidden_apps")
+        val DISMISSED_RUNS = stringSetPreferencesKey("dismissed_runs")
         val UNSUGGESTED = stringSetPreferencesKey("unsuggested_apps")
         val IGNORED_GITHUB = stringSetPreferencesKey("ignored_github")
         val BG_PROTECTION = booleanPreferencesKey("background_protection")
