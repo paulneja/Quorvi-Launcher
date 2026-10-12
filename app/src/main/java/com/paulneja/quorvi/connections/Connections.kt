@@ -60,7 +60,7 @@ class Hosts @Inject constructor(
         return host
     }
 
-    fun publicKey(host: HostEntity): String? = credentials.key(host.id)?.let { SshCrypto.authorizedKey(it.public, "nexo@${android.os.Build.MODEL.replace(' ', '-')}") }
+    fun publicKey(host: HostEntity): String? = credentials.key(host.id)?.let { SshCrypto.authorizedKey(it.public, "quorvi@${android.os.Build.MODEL.replace(' ', '-')}") }
 
     suspend fun probe(host: HostEntity): HostKey = ssh.probe(host)
 

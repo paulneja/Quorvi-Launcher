@@ -157,7 +157,7 @@ fun HostDetail(vm: ConnectionsViewModel, id: String, onBack: () -> Unit, onTermi
                 ActionRow(stringResource(R.string.hosts_back_to_host), selected?.name) { vm.closeLogs() }
                 SelectionContainer {
                     LazyColumn(contentPadding = PaddingValues(12.dp)) {
-                        item { Text(logText.ifEmpty { stringResource(R.string.accounts_loading) }, style = Quorvi.type.caption.copy(fontFamily = FontFamily.Monospace), color = Quorvi.colors.text) }
+                        item { Text(when (logText) { "" -> stringResource(R.string.accounts_loading); EMPTY_LOGS -> stringResource(R.string.hosts_no_logs); else -> logText }, style = Quorvi.type.caption.copy(fontFamily = FontFamily.Monospace), color = Quorvi.colors.text) }
                     }
                 }
             }
@@ -233,7 +233,7 @@ fun HostDetail(vm: ConnectionsViewModel, id: String, onBack: () -> Unit, onTermi
                                 if (pending == null) {
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
                                         Chip(stringResource(R.string.hosts_logs)) { vm.loadLogs(h, c) }
-                                        DockerAction.entries.forEach { a -> Chip(a.verb) { confirm = a } }
+                                        DockerAction.entries.forEach { a -> Chip(dockerLabel(a)) { confirm = a } }
                                     }
                                 } else {
                                     Hint(stringResource(R.string.hosts_docker_confirm, pending.verb, c.name, h.name))
@@ -289,7 +289,7 @@ fun HostTerminal(vm: ConnectionsViewModel, id: String, onBack: () -> Unit) {
             if (!connected && h != null) Chip(stringResource(R.string.hosts_reconnect), accent = true) { vm.openConsole(h) }
         }
         Row(Modifier.padding(horizontal = 12.dp).padding(bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.weight(1f)) { InputField(line, { line = it }, if (connected) "$ " else stringResource(R.string.hosts_disconnected)) }
+            Box(Modifier.weight(1f)) { InputField(line, { line = it }, if (connected) "$ " else stringResource(R.string.hosts_disconnected), onSubmit = { vm.send(line + "\n"); line = "" }) }
             Spacer(Modifier.width(8.dp))
             Chip(stringResource(R.string.hosts_send), accent = true) { vm.send(line + "\n"); line = "" }
         }
@@ -388,7 +388,7 @@ fun HttpEdit(vm: ConnectionsViewModel, id: String, onBack: () -> Unit) {
                 Panel {
                     if (!tcp) {
                     Row(Modifier.horizontalScroll(rememberScrollState()).padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HttpDisplay.entries.forEach { d -> Chip(d.name.lowercase(), accent = widget.display == d.name) { widget = widget.copy(display = d.name) } }
+                        HttpDisplay.entries.forEach { d -> Chip(stringResource(when (d) { HttpDisplay.TEXT -> R.string.http_display_text; HttpDisplay.COUNTER -> R.string.http_display_counter; HttpDisplay.STATUS -> R.string.http_display_status; HttpDisplay.SERIES -> R.string.http_display_series; HttpDisplay.LIST -> R.string.http_display_list; HttpDisplay.BUTTON -> R.string.http_display_button; HttpDisplay.TOGGLE -> R.string.http_display_toggle }), accent = widget.display == d.name) { widget = widget.copy(display = d.name) } }
                     }
                     InputField(widget.jsonPath.orEmpty(), { widget = widget.copy(jsonPath = it.ifBlank { null }) }, stringResource(R.string.http_jsonpath))
                     InputField(widget.unit.orEmpty(), { widget = widget.copy(unit = it.ifBlank { null }) }, stringResource(R.string.http_unit))
@@ -446,3 +446,10 @@ fun ScreenBar(title: String, onBack: () -> Unit, action: (@Composable () -> Unit
         action?.invoke()
     }
 }
+
+@Composable
+private fun dockerLabel(a: DockerAction): String = stringResource(when (a.name) {
+    "START" -> R.string.hosts_docker_start
+    "STOP" -> R.string.hosts_docker_stop
+    else -> R.string.hosts_docker_restart
+})

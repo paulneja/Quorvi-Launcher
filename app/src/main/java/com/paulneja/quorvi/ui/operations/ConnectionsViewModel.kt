@@ -107,7 +107,7 @@ class ConnectionsViewModel @Inject constructor(
 
     fun loadLogs(host: HostEntity, container: ContainerEntity) = viewModelScope.launch {
         _logs.value = ""
-        _logs.value = runCatching { hosts.logs(host, container.id) }.getOrElse { describe(it) }
+        _logs.value = runCatching { hosts.logs(host, container.id) }.getOrElse { describe(it) }.ifEmpty { EMPTY_LOGS }
     }
 
     fun closeLogs() { _logs.value = null }
@@ -203,3 +203,5 @@ object TerminalText {
         return if (out.length > LIMIT) out.substring(out.length - LIMIT) else out.toString()
     }
 }
+
+internal const val EMPTY_LOGS = "\u0000empty"

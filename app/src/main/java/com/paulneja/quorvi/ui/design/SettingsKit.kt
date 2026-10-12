@@ -129,7 +129,7 @@ fun IconButton(glyph: ImageVector, onClick: () -> Unit, enabled: Boolean = true)
 }
 
 @Composable
-fun InputField(value: String, onChange: (String) -> Unit, placeholder: String, secret: Boolean = false, singleLine: Boolean = true) {
+fun InputField(value: String, onChange: (String) -> Unit, placeholder: String, secret: Boolean = false, singleLine: Boolean = true, onSubmit: (() -> Unit)? = null) {
     Box(Modifier.padding(vertical = 6.dp).fillMaxWidth().clip(Quorvi.shapes.control).background(Quorvi.colors.field).padding(14.dp)) {
         BasicTextField(
             value = value,
@@ -138,6 +138,8 @@ fun InputField(value: String, onChange: (String) -> Unit, placeholder: String, s
             textStyle = Quorvi.type.body.copy(color = Quorvi.colors.text),
             cursorBrush = SolidColor(Quorvi.colors.accent),
             visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = if (onSubmit != null) androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Send) else androidx.compose.foundation.text.KeyboardOptions.Default,
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSend = { onSubmit?.invoke() }),
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner ->
                 if (value.isEmpty()) Text(placeholder, style = Quorvi.type.body, color = Quorvi.colors.textSecondary)
