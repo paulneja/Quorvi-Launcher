@@ -40,7 +40,7 @@ import kotlinx.serialization.json.put
 
 sealed interface Turn {
     data class Text(val text: String) : Turn
-    data class Calls(val calls: List<Pair<String, JsonObject>>) : Turn
+    data class Calls(val calls: List<Pair<String, JsonObject>>, val text: String = "") : Turn
     data object Hang : Turn
 }
 
@@ -67,7 +67,10 @@ class ScriptedModel(turns: List<Turn>) : AiClient {
         val turn = synchronized(queue) { queue.removeFirstOrNull() } ?: Turn.Text("I have nothing else to do.")
         when (turn) {
             is Turn.Text -> emit(AiEvent.TextDelta(turn.text))
-            is Turn.Calls -> emit(AiEvent.ToolCalls(turn.calls.map { (name, args) -> AiToolCall("c${ids.incrementAndGet()}", name, args) }))
+            is Turn.Calls -> {
+                if (turn.text.isNotEmpty()) emit(AiEvent.TextDelta(turn.text))
+                emit(AiEvent.ToolCalls(turn.calls.map { (name, args) -> AiToolCall("c${ids.incrementAndGet()}", name, args) }))
+            }
             Turn.Hang -> awaitCancellation()
         }
         emit(AiEvent.Done(AiUsage(100, 20)))

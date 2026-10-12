@@ -169,6 +169,12 @@ interface OpsDao {
     @Query("UPDATE runs SET tokensIn = COALESCE(tokensIn, 0) + :tokensIn, tokensOut = COALESCE(tokensOut, 0) + :tokensOut, costSource = :source WHERE id = :id")
     suspend fun addUsage(id: String, tokensIn: Long, tokensOut: Long, source: String)
 
+    @Query("SELECT DISTINCT runId FROM run_steps")
+    fun observeRunsWithSteps(): kotlinx.coroutines.flow.Flow<List<String>>
+
+    @Query("UPDATE runs SET state = 'COMPLETED', finishedAt = :now, updatedAt = :now WHERE origin = :origin AND id != :keep AND state IN ('WAITING_USER', 'WAITING_CAPABILITY', 'INTERRUPTED', 'PAUSED')")
+    suspend fun settleWaiting(origin: String, keep: String, now: Long)
+
     @Query("UPDATE runs SET lastCommittedStep = :step, heartbeatAt = :now, updatedAt = :now WHERE id = :id")
     suspend fun commitStep(id: String, step: String, now: Long)
 

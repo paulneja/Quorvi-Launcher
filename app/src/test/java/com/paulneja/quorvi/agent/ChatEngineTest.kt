@@ -61,6 +61,8 @@ class ChatEngineTest {
         db.close()
     }
 
+    private val policyStore = MemoryPolicyStore()
+
     private fun engine(coordinator: ScriptedModel, orchestra: Orchestra = Orchestra(), specialists: Map<String, ScriptedModel> = emptyMap()): AgentEngine {
         val models = object : ModelSource {
             override suspend fun forRole(role: ModelRole): ModelChoice = coordinator.choice()
@@ -69,7 +71,7 @@ class ChatEngineTest {
         val log = RoomChatLog(ApplicationProvider.getApplicationContext(), db.chats(), db.ops())
         return AgentEngine(
             db.ops(), models, FakeToolBox(workspace, db.ops()), scope,
-            com.paulneja.quorvi.agent.policy.PolicyService(MemoryPolicyStore(), FakeDevice()), EngineLimits(modelTimeoutMs = 5_000),
+            com.paulneja.quorvi.agent.policy.PolicyService(policyStore, FakeDevice()), EngineLimits(modelTimeoutMs = 5_000),
             chats = log, orchestra = { orchestra },
         )
     }
@@ -88,6 +90,44 @@ class ChatEngineTest {
     private fun submitSpec(engine: AgentEngine, text: String, spec: RunSpec): String {
         say(text)
         return engine.submit(Json.encodeToString(RunSpec.serializer(), spec))
+    }
+
+    @Test
+    fun anApprovalResumesTheSameTurnWithItsContextAndRunsTheApprovedCall() {
+        val model = ScriptedModel(listOf(
+            call("fs.write", "path" to "notes.txt", "content" to "hola"),
+            call("shell.exec", "argv" to listOf("git", "push")),
+            Turn.Text("Listo, publiqué."),
+        ))
+        val engine = engine(model)
+        val id = submit(engine, "guardá y publicá")
+        await(id, RunState.WAITING_USER)
+        val approval = policyStore.approvals.single()
+        policyStore.grants += com.paulneja.quorvi.agent.policy.GrantEntity("g1", id, approval.action, approval.resource, 0, usesLeft = 1)
+        engine.resume(id)
+        await(id, RunState.COMPLETED)
+        assertEquals(1, workspace.commands.count { it == listOf("git", "push") })
+        val resumed = model.requests.last().messages
+        assertTrue(resumed.any { it.role == com.paulneja.quorvi.agent.models.AiRole.TOOL && it.text.contains("notes.txt") })
+        assertEquals(2, resumed.count { it.role == com.paulneja.quorvi.agent.models.AiRole.TOOL && it.text.startsWith("[SUCCESS]") })
+        assertEquals("Listo, publiqué.", assistant().last().text)
+    }
+
+    @Test
+    fun aQuestionAlreadyAskedInTheTextIsNotRepeated() {
+        val model = ScriptedModel(listOf(Turn.Calls(listOf("ask_user" to json("question" to "¿En qué ciudad vas a estar mañana temprano?")), "Necesito saber en qué ciudad estás para el pronóstico de mañana temprano. ¿Dónde estás?")))
+        val id = submit(engine(model), "¿llevo campera mañana?")
+        await(id, RunState.WAITING_USER)
+        val text = assistant().last().text
+        assertEquals(1, Regex("\\?").findAll(text).count())
+    }
+
+    @Test
+    fun aSilentModelEndsInAnErrorNotAStop() {
+        val id = submit(engine(ScriptedModel(listOf(Turn.Hang))), "hola")
+        await(id, RunState.FAILED, RunState.COMPLETED, RunState.CANCELLED)
+        val reply = assistant().last()
+        assertEquals(ChatStatus.ERROR, reply.status)
     }
 
     @Test
@@ -292,7 +332,6 @@ class ChatEngineTest {
         await(id, RunState.COMPLETED)
         assertEquals("En Córdoba hace 20 °C.", assistant().last().text)
         val history = coordinator.requests.last().messages.map { it.text }
-        assertTrue(history.contains("Córdoba"))
-        assertEquals(1, history.count { it == "Córdoba" })
+        assertEquals(1, history.count { it.contains("Córdoba") })
     }
 }
