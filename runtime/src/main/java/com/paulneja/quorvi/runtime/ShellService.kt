@@ -242,24 +242,29 @@ class ShellService : Service() {
             private set
         private val worker = thread(name = "nexo-capture") {
             val chunk = ByteArray(8192)
-            input.use {
-                while (true) {
-                    val n = it.read(chunk)
-                    if (n < 0) break
-                    val room = limit - buffer.size()
-                    if (room > 0) buffer.write(chunk, 0, minOf(room, n))
-                    if (n > room) truncated = true
+            try {
+                input.use {
+                    while (true) {
+                        val n = it.read(chunk)
+                        if (n < 0) break
+                        synchronized(buffer) {
+                            val room = limit - buffer.size()
+                            if (room > 0) buffer.write(chunk, 0, minOf(room, n))
+                            if (n > room) truncated = true
+                        }
+                    }
                 }
+            } catch (_: java.io.IOException) {
             }
         }
 
         fun join() = worker.join(5_000)
-        fun text(): String = buffer.toString(Charsets.UTF_8.name())
+        fun text(): String = synchronized(buffer) { buffer.toString(Charsets.UTF_8.name()) }
     }
 
     companion object {
         const val VERSION = 2
         private const val MAX_READ = 1 shl 20
-        private const val MAX_TIMEOUT = 30L * 60_000
+        private const val MAX_TIMEOUT = 181L * 60_000
     }
 }

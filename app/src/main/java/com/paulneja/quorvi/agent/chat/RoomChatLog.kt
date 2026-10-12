@@ -33,6 +33,12 @@ class RoomChatLog @Inject constructor(
         return id
     }
 
+    override suspend fun reopen(chatId: String, runId: String): Pair<String, String>? {
+        val last = dao.messages(chatId).lastOrNull { it.role == ChatRole.ASSISTANT && it.runId == runId } ?: return null
+        dao.setText(last.id, last.text, ChatStatus.STREAMING)
+        return last.id to last.text
+    }
+
     override suspend fun stream(messageId: String, text: String) = dao.setText(messageId, text, ChatStatus.STREAMING)
 
     override suspend fun finish(messageId: String, text: String, status: String, files: List<ChatAttachment>) {
