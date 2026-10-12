@@ -34,7 +34,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.paulneja.quorvi.R
-import com.paulneja.quorvi.control.QuorviAccessibilityService
 import com.paulneja.quorvi.control.PowerHook
 import com.paulneja.quorvi.control.PowerHooks
 import com.paulneja.quorvi.control.PrivBackend
@@ -106,8 +105,7 @@ fun CapabilitiesScreen(vm: CapabilitiesViewModel, onBack: () -> Unit) {
     val config by vm.config.collectAsStateWithLifecycle()
     val degraded by vm.degraded.collectAsStateWithLifecycle()
     val available by vm.available.collectAsStateWithLifecycle()
-    var a11y by remember { mutableStateOf(QuorviAccessibilityService.enabled(context)) }
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { a11y = QuorviAccessibilityService.enabled(context); vm.refresh() }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { vm.refresh() }
     fun open(intent: Intent) = runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 
     Column(Modifier.fillMaxSize()) {
@@ -135,16 +133,6 @@ fun CapabilitiesScreen(vm: CapabilitiesViewModel, onBack: () -> Unit) {
                     Hint(stringResource(R.string.bg_battery_hint))
                     com.paulneja.quorvi.ui.design.SwitchRow(stringResource(R.string.bg_protection), protection) { vm.setProtection(it) }
                     Hint(stringResource(R.string.bg_protection_hint))
-                }
-            }
-            item { Section(stringResource(R.string.cap_screen)) }
-            item {
-                Panel {
-                    ActionRow(
-                        stringResource(R.string.cap_screen_toggle),
-                        stringResource(if (a11y) R.string.cap_on else R.string.cap_off),
-                    ) { open(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
-                    Hint(stringResource(R.string.cap_screen_hint))
                 }
             }
             item { Section(stringResource(R.string.cap_privileged)) }

@@ -5,67 +5,27 @@ import com.paulneja.quorvi.control.PowerHooks
 import com.paulneja.quorvi.control.PrivBackend
 import com.paulneja.quorvi.control.PrivilegedShells
 import com.paulneja.quorvi.control.RootLevel
-import com.paulneja.quorvi.control.ScreenControlBroker
-import com.paulneja.quorvi.control.ScreenResult
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 
-class AndroidInspect(private val broker: ScreenControlBroker) : Tool {
-    override val name = "android.inspect_ui"
-    override val description = "Read the current screen as a list of elements (role, text, id, clickable/editable/scroll). Field contents are hidden on sensitive screens."
-    override val risk = Risk.READ
-    override val idempotent = true
-    override val parameters = schema {}
-
-    override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult {
-        val snap = broker.inspect() ?: return ToolResult.failed("Screen control is off or no window is available", ToolStatus.UNAUTHORIZED)
-        return ToolResult.ok(snap.describe())
-    }
-}
-
-class AndroidAct(private val broker: ScreenControlBroker) : Tool {
-    override val name = "android.act"
-    override val description = "Act on the screen: click/set_text on a target (its id or visible text), or scroll_forward/scroll_back/back/home/recents/notifications. A human touch pauses the agent."
-    override val risk = Risk.WRITE
-    override val idempotent = false
-    override val parameters = schema {
-        string("action", "click, set_text, scroll_forward, scroll_back, back, home, recents or notifications")
-        string("target", "the element id or its visible text (for click/set_text)", optional = true)
-        string("text", "text to type (for set_text)", optional = true)
-    }
-
-    override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult {
-        if (!broker.acquire()) return ToolResult(ToolStatus.CANCELLED, "The screen is being used by you; the agent stepped back.")
-        val result = broker.act(args.string("action"), args.stringOrNull("target"), args.stringOrNull("text"))
-        return when (result) {
-            is ScreenResult.Ok -> {
-                kotlinx.coroutines.delay(500)
-                val after = broker.inspect()?.describe(40)
-                ToolResult.ok(result.message + (after?.let { "\n--- screen now ---\n$it" } ?: ""))
-            }
-            is ScreenResult.Unavailable -> ToolResult.failed(result.reason)
-            ScreenResult.Preempted -> ToolResult(ToolStatus.CANCELLED, "You touched the screen; the agent released it.")
-        }
-    }
-}
-
-class AndroidLaunch(private val broker: ScreenControlBroker) : Tool {
+class AndroidLaunch(private val context: android.content.Context) : Tool {
     override val name = "android.launch"
-    override val description = "Open an app by package name."
+    override val description = "Open an app on the phone by package name (use android_list_apps to find it)."
     override val risk = Risk.WRITE
     override val idempotent = true
     override val parameters = schema { string("package", "package name, e.g. com.android.settings") }
 
-    override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult = when (val r = broker.launch(args.string("package"))) {
-        is ScreenResult.Ok -> ToolResult.ok(r.message)
-        is ScreenResult.Unavailable -> ToolResult.failed(r.reason)
-        ScreenResult.Preempted -> ToolResult(ToolStatus.CANCELLED, "preempted")
+    override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult {
+        val pkg = args.string("package")
+        val intent = this.context.packageManager.getLaunchIntentForPackage(pkg) ?: return ToolResult.failed("No launchable app $pkg")
+        return runCatching { this.context.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)); ToolResult.ok("Opened $pkg") }
+            .getOrElse { ToolResult.failed("Could not open $pkg: ${it.message}") }
     }
 }
 
-class AndroidListApps(private val broker: ScreenControlBroker) : Tool {
+class AndroidListApps(private val context: android.content.Context) : Tool {
     override val name = "android.list_apps"
     override val description = "List installed launchable apps as name and package."
     override val risk = Risk.READ
@@ -73,9 +33,14 @@ class AndroidListApps(private val broker: ScreenControlBroker) : Tool {
     override val parameters = schema { string("query", "optional filter", optional = true) }
 
     override suspend fun invoke(args: JsonObject, context: ToolContext): ToolResult {
+        val pm = this.context.packageManager
         val q = args.stringOrNull("query")?.lowercase()
-        val apps = broker.apps().filter { q == null || it.second.lowercase().contains(q) || it.first.contains(q) }
-        if (apps.isEmpty()) return ToolResult.failed("Screen control is off or no apps matched", ToolStatus.UNAUTHORIZED)
+        val apps = pm.queryIntentActivities(android.content.Intent(android.content.Intent.ACTION_MAIN).addCategory(android.content.Intent.CATEGORY_LAUNCHER), 0)
+            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
+            .distinctBy { it.first }
+            .filter { q == null || it.second.lowercase().contains(q) || it.first.contains(q) }
+            .sortedBy { it.second }
+        if (apps.isEmpty()) return ToolResult.failed("No apps matched")
         return ToolResult.ok(apps.take(200).joinToString("\n") { "${it.second} — ${it.first}" })
     }
 }
