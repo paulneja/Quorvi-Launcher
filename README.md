@@ -78,3 +78,7 @@ licenses/       third-party licenses and attributions
 ## Third-party code
 
 Liquid glass builds on `miuix-blur` and adapts the lens from Kyant0/AndroidLiquidGlass (both Apache-2.0). The runtime uses the Termux bootstrap and packages. Fonts: Geist and Geist Mono (SIL OFL 1.1). See `licenses/` or Settings → About → Licenses in the app.
+
+## License
+
+Quorvi is free software under the GNU General Public License v3.0. See [`LICENSE`](LICENSE).
