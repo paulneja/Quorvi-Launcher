@@ -32,7 +32,7 @@ class UltraPullRequests @Inject constructor(
             val branch = branchName(config.branchPrefix, draft.title)
             api.createBranch(draft.repo, branch, commit)
             val (number, url) = api.createPull(draft.repo, draft.title, draft.body, branch, draft.baseBranch, config.draftPullRequests)
-            checkout(message.chatId, branch)
+            resetToBase(message.chatId, draft.baseBranch, number, draft.excluded.isNotEmpty())
             draft.copy(status = PrStatus.SUBMITTED, number = number, url = url)
         }.getOrElse { e ->
             val detail = (e as? com.paulneja.quorvi.core.net.HttpStatusException)?.let { h ->
@@ -79,11 +79,11 @@ class UltraPullRequests @Inject constructor(
         if (draft.status == PrStatus.PENDING || draft.status == PrStatus.FAILED || draft.status == PrStatus.BLOCKED) save(messageId, draft.copy(status = PrStatus.REJECTED))
     }
 
-    private suspend fun checkout(chatId: String, branch: String) {
+    private suspend fun resetToBase(chatId: String, base: String, number: Int, keepLeftovers: Boolean) {
         runCatching {
             val ws = UltraWorkspace(runtime, { api.token() }, chatId)
             val auth = api.token()?.let { t -> "-c http.extraHeader=\"Authorization: Basic ${android.util.Base64.encodeToString("x-access-token:$t".toByteArray(), android.util.Base64.NO_WRAP)}\" " }.orEmpty()
-            ws.bash("git ${auth}fetch origin $branch && git checkout -B $branch FETCH_HEAD", timeoutMs = 120_000)
+            ws.bash(resetScript(auth, base, number, keepLeftovers), timeoutMs = 120_000)
         }
     }
 
@@ -93,6 +93,10 @@ class UltraPullRequests @Inject constructor(
     }
 
     companion object {
+        fun resetScript(auth: String, base: String, number: Int, keepLeftovers: Boolean): String =
+            (if (keepLeftovers) "git add -A && (git diff --cached --quiet || git stash push -q -m 'left out of PR #$number'); " else "") +
+                "git ${auth}fetch -q origin $base && git checkout -q -f -B $base FETCH_HEAD && git reset -q --hard FETCH_HEAD && git clean -q -fd"
+
         fun branchName(prefix: String, title: String): String {
             val slug = title.lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-').take(40).trimEnd('-').ifBlank { "change" }
             return prefix.trimEnd('/').let { if (it.isEmpty()) "" else "$it/" } + slug + "-" + System.currentTimeMillis().toString(36).takeLast(5)

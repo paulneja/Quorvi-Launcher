@@ -70,7 +70,7 @@ class UltraWorkspace(private val runtime: Workspace, private val token: suspend 
     val repoDir = "$dir/repo"
 
     suspend fun bash(command: String, cwd: String = repoDir, timeoutMs: Long = 120_000, env: Map<String, String> = emptyMap()) =
-        runtime.exec(ExecRequest(argv = listOf("bash", "-lc", command), cwd = cwd, env = env + ("GIT_TERMINAL_PROMPT" to "0"), timeoutMs = timeoutMs))
+        runtime.exec(ExecRequest(argv = listOf("bash", "-lc", "export TMPDIR=\"\$HOME/$dir/.tmp\"; mkdir -p \"\$TMPDIR\"; $command"), cwd = cwd, env = env + ("GIT_TERMINAL_PROMPT" to "0"), timeoutMs = timeoutMs))
 
     suspend fun cloned(): Boolean = runCatching { bash("test -d .git && echo yes", timeoutMs = 10_000).stdout.contains("yes") }.getOrDefault(false)
 

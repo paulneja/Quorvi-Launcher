@@ -62,6 +62,16 @@ class UltraTest {
     }
 
     @Test
+    fun afterAPullRequestTheWorkspaceGoesBackToACleanBase() {
+        val keep = UltraPullRequests.resetScript("", "main", 3, keepLeftovers = true)
+        assertTrue(keep, keep.contains("git stash push -q -m 'left out of PR #3'"))
+        assertTrue(keep, keep.indexOf("stash") < keep.indexOf("checkout"))
+        val clean = UltraPullRequests.resetScript("", "main", 3, keepLeftovers = false)
+        assertFalse(clean, clean.contains("stash"))
+        assertTrue(clean, clean.contains("git checkout -q -f -B main FETCH_HEAD") && clean.endsWith("git clean -q -fd"))
+    }
+
+    @Test
     fun styleAndBranchFollowTheOwnersSettings() {
         assertTrue(CommitPolicy.styleRule(UltraConfig()).contains("Conventional"))
         assertTrue(CommitPolicy.styleRule(UltraConfig(commitStyle = CommitStyle.CUSTOM, customStyle = "emoji first")).contains("emoji first"))
