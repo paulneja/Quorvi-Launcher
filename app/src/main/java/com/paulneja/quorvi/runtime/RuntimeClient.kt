@@ -64,7 +64,21 @@ class RuntimeClient @Inject constructor(@ApplicationContext private val context:
     suspend fun awaitService(timeoutMs: Long = 5_000): IShellService {
         service.value?.let { return it }
         bind()
-        return withTimeoutOrNull(timeoutMs) { service.filterNotNull().first() } ?: throw RuntimeUnavailable("The terminal did not answer")
+        withTimeoutOrNull(timeoutMs) { service.filterNotNull().first() }?.let { return it }
+        wake()
+        return withTimeoutOrNull(10_000) { service.filterNotNull().first() } ?: throw RuntimeUnavailable("The terminal did not answer")
+    }
+
+    private fun wake() {
+        com.paulneja.quorvi.agent.engine.AgentLog.w(null, "terminal service not answering: waking its process")
+        runCatching {
+            context.startActivity(Intent(context, com.paulneja.quorvi.runtime.ShellWakeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION))
+        }
+        synchronized(this) {
+            if (binding) runCatching { context.unbindService(connection) }
+            binding = false
+        }
+        bind()
     }
 
     suspend fun status(): RuntimeStatus = io { json.decodeFromString(RuntimeStatus.serializer(), awaitService().status()) }
@@ -80,6 +94,21 @@ class RuntimeClient @Inject constructor(@ApplicationContext private val context:
     }
 
     suspend fun install() = io { awaitService().install() }
+
+    suspend fun ensureReady(timeoutMs: Long = 6 * 60_000): Boolean {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        var asked = false
+        while (System.currentTimeMillis() < deadline) {
+            when (availability()) {
+                RuntimeAvailability.READY -> return true
+                RuntimeAvailability.FAILED -> if (asked) return false
+                else -> Unit
+            }
+            if (!asked) { com.paulneja.quorvi.agent.engine.AgentLog.i(null, "runtime not ready: installing"); runCatching { install() }; asked = true }
+            kotlinx.coroutines.delay(2_000)
+        }
+        return availability() == RuntimeAvailability.READY
+    }
 
     override suspend fun exec(request: ExecRequest): ExecResult = io {
         json.decodeFromString(ExecResult.serializer(), awaitService().exec(json.encodeToString(ExecRequest.serializer(), request)))

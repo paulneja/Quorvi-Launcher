@@ -23,17 +23,36 @@ class CoreClient @Inject constructor(@ApplicationContext private val context: Co
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val core = IQuorviCore.Stub.asInterface(service)
+            com.paulneja.quorvi.agent.engine.AgentLog.i(null, "core service connected")
             _core.value = core
             runCatching { core.setVisible(visible) }
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            com.paulneja.quorvi.agent.engine.AgentLog.w(null, "core service disconnected")
             _core.value = null
         }
     }
 
     fun attach() {
         if (bound++ == 0) context.bindService(Intent(context, CoreService::class.java), connection, Context.BIND_AUTO_CREATE)
+    }
+
+    fun ensure() {
+        if (bound == 0) attach()
+    }
+
+    fun wake() {
+        com.paulneja.quorvi.agent.engine.AgentLog.w(null, "core service not answering: waking its process")
+        runCatching {
+            context.startActivity(Intent(context, CoreWakeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION))
+        }
+        if (bound > 0) {
+            runCatching { context.unbindService(connection) }
+            context.bindService(Intent(context, CoreService::class.java), connection, Context.BIND_AUTO_CREATE)
+        } else {
+            attach()
+        }
     }
 
     fun detach() {
@@ -64,7 +83,10 @@ class CoreClient @Inject constructor(@ApplicationContext private val context: Co
 
     fun runCapsule(id: String): String? = _core.value?.let { runCatching { it.runCapsule(id) }.getOrNull() }?.takeIf { it.isNotEmpty() }
 
-    fun submitRun(specJson: String): String? = _core.value?.let { runCatching { it.submitRun(specJson) }.getOrNull() }?.takeIf { it.isNotEmpty() }
+    fun submitRun(specJson: String): String? {
+        val core = _core.value ?: run { com.paulneja.quorvi.agent.engine.AgentLog.w(null, "submit failed: core service not connected"); return null }
+        return runCatching { core.submitRun(specJson) }.onFailure { com.paulneja.quorvi.agent.engine.AgentLog.w(null, "submit failed", it) }.getOrNull()?.takeIf { it.isNotEmpty() }
+    }
 
     private fun call(block: (IQuorviCore) -> Unit) {
         _core.value?.let { runCatching { block(it) } }

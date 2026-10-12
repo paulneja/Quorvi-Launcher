@@ -81,6 +81,7 @@ class CoreService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        runCatching { rikka.shizuku.ShizukuProvider.requestBinderForNonProviderProcess(this) }
         runs.executor = agents.engine
         scope.launch { runs.reconcile() }
         scope.launch {

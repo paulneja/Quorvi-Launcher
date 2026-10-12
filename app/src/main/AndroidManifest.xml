@@ -200,6 +200,14 @@
             android:exported="false"
             android:label="@string/labs_title" />
 
+        <activity
+            android:name=".ops.CoreWakeActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:process=":work"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name=".ops.CoreService"
             android:exported="false"
