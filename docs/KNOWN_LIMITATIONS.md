@@ -30,10 +30,15 @@ Anything not listed here as verified should be treated as unverified. Test devic
 - Accessibility screen control: observe → act → verify loop on Settings.
 - Chat → Ultra offer, `@meta`, `/plan`, capsule proposals, PR draft card (grouping, per-file diff, leaving files out, editing text and the authorship check).
 - The voice pipeline with a test server: assistant gesture, upload to `/audio/transcriptions`, spoken answer requested sentence by sentence.
-- The orb in every state and the chat → Ultra transition; 60 fps in the bench screen on the emulator.
+- The orb in every state (60 fps in the bench screen on the emulator) and the Horizon transition both ways, checked frame by frame on the emulator.
+- Field ripples, orb tap, rim lights, bubble launch, answer sweep, the first-message fold, the stretching mode thumb and the voice-mode field, recorded on the emulator.
 - Full encrypted backup: export, wrong-password rejection and import into a fresh install (chats, messages, providers, keys, home and capsules).
 - English and Spanish UI.
 - Armor 29 Ultra: install, 120 Hz, jank 1.0–1.6 % in drawer journeys.
+- Armor 29 Ultra with a private test repository and a mid-tier model: Ultra explains the repo, fixes a bug with tests, plans and implements an issue, and creates draft PRs authored by the user with no trailers (CI green); edit and discard work; after a PR the workspace returns to a clean, up-to-date base (leftovers stashed only when files were excluded); Ultra runs show in Tasks with localized states; the Horizon transition ran at 0.87 % jank.
+- Armor 29 Ultra, Ultra with the orchestra built a native Android counter from a plain request (runtime reinstalled itself, javac/d8/aapt2/apksigner, one install approval), installed it through Shizuku and opened it; Sumar and Reiniciar work.
+- Armor 29 Ultra over the LAN against an SSH test container: host key fetched and pinned (fingerprint matches ssh-keygen), health, Docker list of the real host, restart with confirmation, empty logs message, interactive console, and ssh.exec from a chat agent.
+- Armor 29 Ultra: full-screen Terminal page, drawer A–Z index and accent-insensitive search, a system clock widget, an HTTPS monitor with JSONPath (HTTP 200 → value).
 
 ## Not verified
 
@@ -57,8 +62,7 @@ Anything not listed here as verified should be treated as unverified. Test devic
 - Holding home/power on the phone, and other apps using Quorvi's `RecognitionService`.
 
 **Connections**
-- Docker start/stop/restart on real containers; the Docker card on the canvas.
-- SSH from the phone to a LAN server; `ssh.exec` from an agent with a real model.
+- The Docker card on the canvas.
 - Home Assistant and GitLab against real instances (clients and mapping are tested).
 - The worker over TLS or Tailscale (tested over localhost with `adb reverse`).
 
@@ -69,6 +73,7 @@ Anything not listed here as verified should be treated as unverified. Test devic
 - Termux `RUN_COMMAND`: Termux isn't installed on the test emulator.
 
 **Visuals**
+- The Horizon transition and the living background on the phone: frame time, and battery while the chat stays open (verified on the emulator only).
 - Orb performance on the phone and the tilt sensor; the Canvas orb fallback on a real Android < 13 (forced in the bench screen).
 - The drawer background quality on the phone with a detailed wallpaper.
 

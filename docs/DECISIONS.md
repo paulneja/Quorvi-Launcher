@@ -170,7 +170,13 @@ AGP 9 notes: don't apply `org.jetbrains.kotlin.android` (AGP brings it), and `an
 
 - Drawn with AGSL shaders: the **Pearl** in chat (liquid glass with an iridescent fluid inside) and the **Singularity** in Ultra (a dark core in a spinning plasma disk with lensing, corona and an orbiting swarm).
 - Five states (idle, listening, thinking, speaking, working) plus the voice level; leans with the phone.
-- Switching to Ultra plays a 2.6 s sequence drawn far beyond the orb: instability, implosion, flash, shockwave with debris and polar jets, then the disk forms.
+- **Horizon transition:** switching between chat and Ultra bends the real screen. The whole chat layer goes through a `RenderEffect` runtime shader centred on the orb: the interface spirals into it, the content swaps at the moment everything is a point, and the other mode is thrown back out of the horizon, lensed until it settles. Forward 1.15 s, back 0.95 s, the same easing both ways. The orb is drawn crisp above the warp (the Pearl collapses, a short flash, the Singularity forms); nothing is drawn over the text any more.
+- **Living background:** each mode has a field tied to the orb's position. Chat: nacre light from the Pearl that ripples and winds while Nexo is busy. Ultra: star dust lensed by the Singularity into arcs, with tilt parallax. The two fields morph into each other during the transition. Without an orb on screen the light comes softly from behind the header.
+- **The orb lights the interface:** suggestion cards, the composer and user bubbles carry a rim light on the edge that faces the orb, in the mode's tint, breathing slowly and following the orb through the transition.
+- **Touch:** touching anywhere sends a ripple through the field (nacre in chat, a gravitational wave through the stars in Ultra), and lit edges brighten as the ripple passes. Tapping the orb squishes it like jelly and sends a stronger wave.
+- **Messages:** user bubbles launch from the composer with an elastic stretch; when an answer finishes streaming a light sweep runs across it. Sending the first message folds the greeting and suggestions up into the orb.
+- The Chat/Ultra thumb stretches like liquid toward the new side. Voice mode uses the same living field, reacting to the voice level while listening and speaking.
+- Below Android 13 the transition is a fade and the field is the plain gradient.
 - Falls back to a Canvas orb below Android 13 or if a shader fails to compile.
 
 ## Backup
