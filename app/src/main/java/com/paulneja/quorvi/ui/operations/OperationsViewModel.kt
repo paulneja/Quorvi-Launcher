@@ -79,7 +79,7 @@ class OperationsViewModel @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
     val signedIn: Boolean get() = session.tokens.signedIn()
 
-    val runs: StateFlow<List<RunEntity>> = dao.observeRuns().map { all -> all.filterNot { it.origin.startsWith("chat:") } }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val runs: StateFlow<List<RunEntity>> = kotlinx.coroutines.flow.combine(dao.observeRuns(), dao.observeRunsWithSteps()) { all, worked -> val ids = worked.toSet(); all.filter { !it.origin.startsWith("chat:") || it.id in ids } }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val ci: StateFlow<List<CiExecutionEntity>> = dao.observeCi().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val watched = dao.observeWatched().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     private val _log = MutableStateFlow<LogState>(LogState.Idle)

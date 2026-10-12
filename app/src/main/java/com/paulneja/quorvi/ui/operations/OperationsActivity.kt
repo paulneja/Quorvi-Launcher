@@ -249,7 +249,7 @@ private fun OperationsList(viewModel: OperationsViewModel, connections: Connecti
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(run.goal, style = Quorvi.type.action, color = Quorvi.colors.text, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                            Text("${run.state.lowercase()} · ${relative(run.updatedAt)}", style = Quorvi.type.caption, color = Quorvi.colors.textSecondary)
+                            Text("${runStateLabel(runCatching { com.paulneja.quorvi.ops.RunState.valueOf(run.state) }.getOrNull())} · ${relative(run.updatedAt)}", style = Quorvi.type.caption, color = Quorvi.colors.textSecondary)
                         }
                     }
                 }

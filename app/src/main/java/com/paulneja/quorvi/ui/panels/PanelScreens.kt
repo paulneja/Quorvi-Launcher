@@ -293,7 +293,7 @@ private fun RunRow(r: RunView, onCancel: (() -> Unit)?, onOpen: () -> Unit) {
         if (!r.state.terminal) {
             Spacer(Modifier.height(7.dp))
             ProgressLine(if (r.total > 0) r.done.toFloat() / r.total else 0.06f)
-            (r.currentStep ?: r.state.name.lowercase()).let { Text(it, style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.padding(top = 5.dp), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            (r.currentStep ?: com.paulneja.quorvi.ui.operations.runStateLabel(r.state)).let { Text(it, style = Quorvi.type.caption, color = Quorvi.colors.textSecondary, modifier = Modifier.padding(top = 5.dp), maxLines = 1, overflow = TextOverflow.Ellipsis) }
         } else if (r.error != null) {
             Text(r.error, style = Quorvi.type.caption, color = Quorvi.colors.danger, modifier = Modifier.padding(top = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
