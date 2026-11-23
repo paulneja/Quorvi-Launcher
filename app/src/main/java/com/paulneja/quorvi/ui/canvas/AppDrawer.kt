@@ -50,6 +50,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -193,7 +194,8 @@ fun AppDrawer(
                 Text(stringResource(R.string.no_results, query), color = Quorvi.colors.textSecondary, style = Quorvi.type.body, modifier = Modifier.padding(24.dp))
             }
             val showWork = !content.searching && tab == DrawerTab.WORK
-            val apps = remember(content, showWork) { com.paulneja.quorvi.launcher.apps.DrawerIndex.order(if (showWork) content.work else content.personal) { it.label } }
+            val locale = LocalConfiguration.current.locales[0]
+            val apps = remember(content, showWork, locale) { com.paulneja.quorvi.launcher.apps.DrawerIndex.order(if (showWork) content.work else content.personal, { it.label }, locale) }
             val showTop = !content.searching && !showWork && topApps.isNotEmpty()
             val sections = remember(apps) { com.paulneja.quorvi.launcher.apps.DrawerIndex.sections(apps.map { it.label }) }
             val headerAt = remember(sections, showTop, showWork) { com.paulneja.quorvi.launcher.apps.DrawerIndex.headerPositions(sections, (if (showTop) 1 else 0) + (if (showWork) 1 else 0)) }
