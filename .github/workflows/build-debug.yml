@@ -29,9 +29,11 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      # 提供 ANDROID_HOME 并接受 SDK 许可协议
+      # 关键：显式覆盖默认的 packages，避免 action 去装已被移除的旧包 "tools"
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       # API 37 (Android 17) 目前是预览版：sdkmanager 安装的目录叫 android-37.0，
       # 而 AGP 的 release(37) 会查找 android-37，因此做一次符号链接映射；
@@ -39,8 +41,21 @@ jobs:
       - name: Install Android SDK components
         run: |
           sdkmanager --install "platforms;android-37.0" "build-tools;37.0.0"
-          ln -sfn "$ANDROID_HOME/platforms/android-37.0" "$ANDROID_HOME/platforms/android-37"
-          curl -fsSL -o "$ANDROID_HOME/platforms/android-37.0/android.jar" \
+
+          PLATFORM_DIR="$ANDROID_HOME/platforms/android-37.0"
+          SOURCE_PROPS="$PLATFORM_DIR/source.properties"
+
+          # 把 ApiLevel 修正为 37，并清空 CodeName，让 AGP 按 release 版识别；重复执行无副作用
+          if [ -f "$SOURCE_PROPS" ]; then
+            sed -i -E 's/^AndroidVersion\.ApiLevel=.*/AndroidVersion.ApiLevel=37/' "$SOURCE_PROPS"
+            sed -i -E 's/^AndroidVersion\.CodeName=.*/AndroidVersion.CodeName=/' "$SOURCE_PROPS"
+          else
+            printf 'AndroidVersion.ApiLevel=37\nAndroidVersion.CodeName=\n' > "$SOURCE_PROPS"
+          fi
+
+          ln -sfn "$PLATFORM_DIR" "$ANDROID_HOME/platforms/android-37"
+
+          curl -fsSL -o "$PLATFORM_DIR/android.jar" \
             https://github.com/Reginer/aosp-android-jar/raw/refs/heads/main/android-37/android-jdk21.jar
 
       # 缓存 Gradle 分发包与依赖
